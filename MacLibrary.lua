@@ -19,6 +19,8 @@ local Players = MacLib.GetService("Players")
 local isStudio = RunService:IsStudio()
 local LocalPlayer = Players.LocalPlayer
 
+local iconLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/rxd977/Scripts/refs/heads/main/IconLibrary.lua"))()
+
 local windowState
 local acrylicBlur
 local hasGlobalSetting
@@ -1480,7 +1482,7 @@ subtitle.Parent = textContainer
 			if Settings.Image then
 				tabImage = Instance.new("ImageLabel")
 				tabImage.Name = "TabImage"
-				tabImage.Image = Settings.Image
+				tabImage.Image = iconLibrary[`lucide-{Settings.Image}`]
 				tabImage.ImageTransparency = 0.5
 				tabImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 				tabImage.BackgroundTransparency = 1
