@@ -49,7 +49,7 @@ if not success then
     return
 end
 
-local success, decoded = pcall(httpService.JSONDecode, httpService, response)
+local success, decoded = pcall(HttpService.JSONDecode, HttpService, response)
 if not success then
     return
 end
