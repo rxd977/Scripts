@@ -55,9 +55,11 @@ if not success then
 end
 
 for _, item in decoded do
-    if item.type ~= "file" or isfile(`Fallen Elite/assets/{item.name}`) then continue end
+    if item.type ~= "file" then continue end
 
-    writefile(`Fallen Elite/assets/{item.name}`, game:HttpGet(`{item.download_url}?raw=true`))
+    if not isfile(`Fallen Elite/assets/{item.name}`) then
+        writefile(`Fallen Elite/assets/{item.name}`, game:HttpGet(`{item.download_url}?raw=true`))
+    end
 
     assets[item.name:gsub("%.png$", "")] = getcustomasset(`Fallen Elite/assets/{item.name}`)
 end
