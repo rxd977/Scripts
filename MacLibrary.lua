@@ -19,8 +19,6 @@ local Players = MacLib.GetService("Players")
 local isStudio = RunService:IsStudio()
 local LocalPlayer = Players.LocalPlayer
 
-local iconLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/rxd977/Scripts/refs/heads/main/IconLibrary.lua"))()
-
 local windowState
 local acrylicBlur
 local hasGlobalSetting
@@ -31,21 +29,38 @@ local tabIndex = 0
 local unloaded = false
 
 local assets = {
-	interFont = "rbxassetid://12187365364",
-	userInfoBlurred = "rbxassetid://18824089198",
-	toggleBackground = "rbxassetid://18772190202",
-	togglerHead = "rbxassetid://18772309008",
-	buttonImage = "rbxassetid://10709791437",
-	searchIcon = "rbxassetid://86737463322606",
-	colorWheel = "rbxassetid://2849458409",
-	colorTarget = "rbxassetid://73265255323268",
-	grid = "rbxassetid://121484455191370",
-	globe = "rbxassetid://108952102602834",
-	transform = "rbxassetid://90336395745819",
-	dropdown = "rbxassetid://18865373378",
-	sliderbar = "rbxassetid://18772615246",
-	sliderhead = "rbxassetid://18772834246",
+    interFont = "rbxassetid://12187365364",
 }
+
+if not isfolder("Fallen Elite") then
+    makefolder("Fallen Elite")
+end
+
+if not isfolder("Fallen Elite/assets") then
+    makefolder("Fallen Elite/assets")
+end
+
+local apiUrl = "https://api.github.com/repos/rxd977/Scripts/contents/Images"
+local success, response = pcall(function()
+    return game:HttpGet(apiUrl)
+end)
+
+if not success then
+    return
+end
+
+local success, decoded = pcall(httpService.JSONDecode, httpService, response)
+if not success then
+    return
+end
+
+for _, item in decoded do
+    if item.type ~= "file" or isfile(`Fallen Elite/assets/{item.name}`) then continue end
+
+    writefile(`Fallen Elite/assets/{item.name}`, game:HttpGet(`{item.download_url}?raw=true`))
+
+    assets[item.name:gsub("%.png$", "")] = getcustomasset(`Fallen Elite/assets/{item.name}`)
+end
 
 --// Functions
 local function GetGui()
@@ -121,21 +136,9 @@ function MacLib:Window(Settings)
 	background.BackgroundTransparency = 1
 	background.Position = UDim2.fromScale(0.5, 0.5)
 	background.Size = Settings.Size or UDim2.fromOffset(868, 650)
-	background.Image = "rbxassetid://130846373082756"
+	background.Image = assets.stars
 	background.ZIndex = 0
 	background.Parent = base
---[[
-	local backgroundIcon = Instance.new("ImageLabel")
-	backgroundIcon.Name = "Icon"
-	backgroundIcon.AnchorPoint = Vector2.new(0.5, 0.5)
-	backgroundIcon.BackgroundTransparency = 1
-	backgroundIcon.Position = UDim2.fromScale(0.5, 0.5)
-	backgroundIcon.Size = UDim2.fromOffset(Settings.Size.X.Offset / 3, Settings.Size.Y.Offset / 2)  or UDim2.fromOffset(868, 650)
-	backgroundIcon.Image = "rbxassetid://71125989350636"
-	backgroundIcon.ZIndex = 0
-	backgroundIcon.Parent = background
-	--]]
-
 
 	local backgroundUICorner = Instance.new("UICorner")
 	backgroundUICorner.Name = "BaseUICorner"
@@ -376,7 +379,7 @@ function MacLib:Window(Settings)
 
 	local globalSettingsButton = Instance.new("ImageButton")
 	globalSettingsButton.Name = "GlobalSettingsButton"
-	globalSettingsButton.Image = assets.globe
+	globalSettingsButton.Image = assets.globe2
 	globalSettingsButton.ImageTransparency = 0.5
 	globalSettingsButton.AnchorPoint = Vector2.new(1, 0.5)
 	globalSettingsButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -426,7 +429,7 @@ local icon = Instance.new("ImageLabel")
 icon.Name = "Icon"
 icon.Size = UDim2.fromOffset(64, 64) -- Adjust as needed
 icon.BackgroundTransparency = 1
-icon.Image = "rbxassetid://71125989350636" -- Replace with your image
+icon.Image = assets.scriptIcon -- Replace with your image
 icon.Parent = titleFrame
 
 -- Container for the vertically stacked title and subtitle
@@ -1482,7 +1485,7 @@ subtitle.Parent = textContainer
 			if Settings.Image then
 				tabImage = Instance.new("ImageLabel")
 				tabImage.Name = "TabImage"
-				tabImage.Image = iconLibrary[`lucide-{Settings.Image}`]
+				tabImage.Image = assets[Settings.Image]
 				tabImage.ImageTransparency = 0.5
 				tabImage.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 				tabImage.BackgroundTransparency = 1
@@ -5723,8 +5726,8 @@ function MacLib:Demo()
 	}
 
 	local tabs = {
-		Main = tabGroups.TabGroup1:Tab({ Name = "Demo", Image = "rbxassetid://18821914323" }),
-		Settings = tabGroups.TabGroup1:Tab({ Name = "Settings", Image = "rbxassetid://10734950309" })
+		Main = tabGroups.TabGroup1:Tab({ Name = "Demo", Image = assets.demo }),
+		Settings = tabGroups.TabGroup1:Tab({ Name = "Settings", Image = assets.settings })
 	}
 
 	local sections = {
