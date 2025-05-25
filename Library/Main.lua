@@ -2406,7 +2406,7 @@ do
 
         Options[Idx] = ColorPicker
 
-        return self
+        return ColorPicker
     end
 
     BaseAddons.__index = Funcs
