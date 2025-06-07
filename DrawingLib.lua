@@ -1007,5 +1007,4 @@ setreadonly(drawing, true);
 setreadonly(drawing.Fonts, true);
 
 --[[ Environment ]]--
-
-genv.Drawing = drawing;
+return drawing
