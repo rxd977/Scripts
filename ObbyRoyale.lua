@@ -1133,8 +1133,6 @@ do -- tas:
 					else
 						interface:sendConsoleMessage(`Failed to download {file.name}`)
 					end
-
-					task.wait(0.1)
 				end
 			end
 
