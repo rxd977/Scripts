@@ -897,7 +897,8 @@ do -- tas:
 	do -- inputController: 
 		function tas.inputController:createCursor()
 			local cursorHolder = Instance.new("ScreenGui")
-			cursorHolder.DisplayOrder = 99
+			cursorHolder.DisplayOrder = 999
+			cursorHolder.OnTopOfCoreBlur = true
 			cursorHolder.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 			cursorHolder.Parent = coreGui
 
@@ -907,7 +908,7 @@ do -- tas:
 
 			local cursorFrame = Instance.new("ImageLabel")
 			cursorFrame.BackgroundTransparency = 1
-			cursorFrame.ZIndex = math.huge
+			cursorFrame.ZIndex = 999
 			cursorFrame.Parent = cursorHolder
 
 			self._cursorFrame = cursorFrame
@@ -1082,6 +1083,65 @@ do -- tas:
 
 			if success then 
 				return decoded
+			end
+		end
+
+		function tas.core:syncTASFiles()
+			if not request then 
+				return interface:sendConsoleMessage("Your executor doesnt support requests!")
+			end
+
+			interface:sendConsoleMessage("Checking TAS files...")
+
+			if not isfolder("TAS Files") then 
+				makefolder("TAS Files")
+			end
+
+			local result = request({
+				Url = "https://api.github.com/repos/rxd977/Scripts/contents/Assets/ObbyRoyale",
+				Method = "GET"
+			})
+
+			local success, files = pcall(function()
+				return httpService:JSONDecode(result.Body)
+			end)
+
+			if not success or not files then
+				return interface:sendConsoleMessage("Failed to fetch TAS file list!")
+			end
+
+			local downloadCount = 0
+
+			for _, file in files do
+				if file.type ~= "file" or not file.name:match("%.json$") then continue end
+
+				local fileName = file.name:gsub("%.json$", "")
+				local filePath = `TAS Files/{file.name}`
+
+				if not isfile(filePath) then
+					interface:sendConsoleMessage(`Downloading {file.name}...`)
+
+					local downloadResult = request({
+						Url = file.download_url,
+						Method = "GET"
+					})
+
+					if downloadResult.StatusCode == 200 then
+						writefile(filePath, downloadResult.Body)
+						downloadCount = downloadCount + 1
+						interface:sendConsoleMessage(`Downloaded {file.name}`)
+					else
+						interface:sendConsoleMessage(`Failed to download {file.name}`)
+					end
+
+					task.wait(0.1)
+				end
+			end
+
+			if downloadCount > 0 then
+				interface:sendConsoleMessage(`Finished! Downloaded {downloadCount} file(s)`)
+			else
+				interface:sendConsoleMessage("All TAS files up to date!")
 			end
 		end
 
@@ -2239,9 +2299,11 @@ do -- interface:
 end
 
 do -- main loader:
+	interface:load()
 	tas:load()
 	obbyRoyale:load()
-	interface:load()
+
+	tas.core:syncTASFiles()
 
 	interface:sendConsoleMessage("Script successfully loaded!")
 end
