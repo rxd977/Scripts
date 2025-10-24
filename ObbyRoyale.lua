@@ -1988,18 +1988,21 @@ do -- interface:
 
 	function interface:createRegions()
 		local regions = {
-			["main"] = {
-				["tas"] = {
-					title = "TAS Creator",
-				},
-				["autoPlay"] = {
-					title = "Auto Play",
-				},
-				["miscellaneous"] = {
-					title = "Miscellaneous",
-				},
-			},
-		}
+            ["main"] = {
+                ["tas"] = {
+                    title = "TAS Creator",
+                },
+                ["autoPlay"] = {
+                    title = "Auto Play",
+                },
+                ["miscellaneous"] = {
+                    title = "Miscellaneous",
+                },
+                ["credits"] = {
+                    title = "Credits",
+                },
+            },
+        }
 
 		for tabName, tabData in regions do
 			if not self._regions[tabName] then self._regions[tabName] = {} end
@@ -2246,6 +2249,18 @@ do -- interface:
 		})
 	end
 
+    function interface:setupCreditsRegion()
+        local creditsRegion = self._regions["main"]["credits"]
+
+        creditsRegion:Label({
+            Text = "Developer: Killa0731",
+        })
+
+        creditsRegion:Label({
+            Text = "Other: Tasability for most of the TAS functionality",
+        })
+    end
+
 	function interface:load()
 		reGui:Init({ Prefabs = insertService:LoadLocalAsset(`rbxassetid://{reGui.PrefabsId}`) })
 		reGui:DefineTheme("Normal", {
@@ -2280,6 +2295,7 @@ do -- interface:
 		self:setupAutoPlayRegion()
 		self:setupTASRegion()
 		self:setupMiscRegion()
+        self:setupCreditsRegion()
 		self:createConsole()
 
 		self._createPopup.Event:Connect(function(stageId)
