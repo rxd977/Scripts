@@ -1967,24 +1967,27 @@ do -- interface:
 	end
 
 	function interface:createTab()
-		local tabs = {
-			["main"] = {
-				name = "Main",
-			},
-		}
+        local tabs = {
+            ["main"] = {
+                name = "Main",
+            },
+            ["credits"] = {
+                name = "Credits",
+            },
+        }
 
-		for tabName, tabData in tabs do
-			local tab = self._window:CreateTab({ Name = tabData.name })
+        for tabName, tabData in tabs do
+            local tab = self._window:CreateTab({ Name = tabData.name })
 
-			local list = tab:List({
-				HorizontalFlex = Enum.UIFlexAlignment.Fill,
-				UiPadding = 1,
-				Spacing = 10
-			})
+            local list = tab:List({
+                HorizontalFlex = Enum.UIFlexAlignment.Fill,
+                UiPadding = 1,
+                Spacing = 10
+            })
 
-			self._tabs[tabName] = list
-		end
-	end
+            self._tabs[tabName] = list
+        end
+    end
 
 	function interface:createRegions()
 		local regions = {
@@ -1998,7 +2001,9 @@ do -- interface:
                 ["miscellaneous"] = {
                     title = "Miscellaneous",
                 },
-                ["credits"] = {
+            },
+            ["credits"] = {
+                ["info"] = {
                     title = "Credits",
                 },
             },
@@ -2250,10 +2255,10 @@ do -- interface:
 	end
 
     function interface:setupCreditsRegion()
-        local creditsRegion = self._regions["main"]["credits"]
+        local creditsRegion = self._regions["credits"]["info"]
 
         creditsRegion:Label({
-            Text = "Developer: Killa0731",
+            Text = "Main Developer: Killa0731",
         })
 
         creditsRegion:Label({
