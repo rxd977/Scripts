@@ -138,6 +138,42 @@ local function getSkeletonPoints(character)
 	return points;
 end
 
+local function createLineCircle(segments, thickness)
+	local lines = {};
+	for i = 1, segments do
+		local line = Drawing.new("Line");
+		line.Thickness = thickness;
+		line.Visible = false;
+		lines[i] = line;
+	end
+	return lines;
+end
+
+local function updateLineCircle(lines, position, radius, color, transparency, thickness, visible)
+	local segments = #lines;
+	for i = 1, segments do
+		local angle = ((i - 1) / segments) * math.pi * 2;
+		local point = Vector2.new(
+			position.X + math.cos(angle) * radius,
+			position.Y + math.sin(angle) * radius
+		);
+		
+		local next_angle = (i / segments) * math.pi * 2;
+		local next_point = Vector2.new(
+			position.X + math.cos(next_angle) * radius,
+			position.Y + math.sin(next_angle) * radius
+		);
+		
+		local line = lines[i];
+		line.From = point;
+		line.To = next_point;
+		line.Color = color;
+		line.Transparency = transparency;
+		line.Thickness = thickness;
+		line.Visible = visible;
+	end
+end
+
 -- esp object
 local EspObject = {};
 EspObject.__index = EspObject;
@@ -163,6 +199,13 @@ function EspObject:Construct()
 	self.charCache = {};
 	self.childCount = 0;
 	self.bin = {};
+	
+	-- Create face circle lines (36 segments for smooth circle)
+	self.faceCircleLines = createLineCircle(36, 1);
+	for i = 1, #self.faceCircleLines do
+		self.bin[#self.bin + 1] = self.faceCircleLines[i];
+	end
+	
 	self.drawings = {
 		box3d = {
 			{
@@ -198,18 +241,26 @@ function EspObject:Construct()
 			name = self:_create("Text", { Text = self.player.DisplayName or self.player.Name, Center = true, Visible = false }),
 			distance = self:_create("Text", { Center = true, Visible = false }),
 			weapon = self:_create("Text", { Center = true, Visible = false }),
-			skeletonFace = self:_create("Circle", { Thickness = 1, Visible = false, Radius = 8, NumSides = 30 }),
+			
 			skeletonHead = self:_create("Line", { Thickness = 1, Visible = false }),
-			skeletonTorso = self:_create("Line", { Thickness = 1, Visible = false }),	
+			skeletonTorso = self:_create("Line", { Thickness = 1, Visible = false }),
+			
+			-- Left Arm (3 segments: shoulder → elbow → wrist → hand)
 			skeletonLeftArm1 = self:_create("Line", { Thickness = 1, Visible = false }),
 			skeletonLeftArm2 = self:_create("Line", { Thickness = 1, Visible = false }),
-			skeletonLeftArm3 = self:_create("Line", { Thickness = 1, Visible = false }),	
+			skeletonLeftArm3 = self:_create("Line", { Thickness = 1, Visible = false }),
+			
+			-- Right Arm (3 segments)
 			skeletonRightArm1 = self:_create("Line", { Thickness = 1, Visible = false }),
 			skeletonRightArm2 = self:_create("Line", { Thickness = 1, Visible = false }),
-			skeletonRightArm3 = self:_create("Line", { Thickness = 1, Visible = false }),		
+			skeletonRightArm3 = self:_create("Line", { Thickness = 1, Visible = false }),
+			
+			-- Left Leg (3 segments: hip → knee → ankle → foot)
 			skeletonLeftLeg1 = self:_create("Line", { Thickness = 1, Visible = false }),
 			skeletonLeftLeg2 = self:_create("Line", { Thickness = 1, Visible = false }),
-			skeletonLeftLeg3 = self:_create("Line", { Thickness = 1, Visible = false }),	
+			skeletonLeftLeg3 = self:_create("Line", { Thickness = 1, Visible = false }),
+			
+			-- Right Leg (3 segments)
 			skeletonRightLeg1 = self:_create("Line", { Thickness = 1, Visible = false }),
 			skeletonRightLeg2 = self:_create("Line", { Thickness = 1, Visible = false }),
 			skeletonRightLeg3 = self:_create("Line", { Thickness = 1, Visible = false }),
@@ -462,7 +513,6 @@ function EspObject:Render()
 	local skeletonEnabled = enabled and onScreen and options.skeleton;
 	
 	-- Set all skeleton visibilities
-	visible.skeletonFace.Visible = skeletonEnabled;
 	visible.skeletonHead.Visible = skeletonEnabled;
 	visible.skeletonTorso.Visible = skeletonEnabled;
 	visible.skeletonLeftArm1.Visible = skeletonEnabled;
@@ -483,25 +533,38 @@ function EspObject:Render()
 		local skeletonColor = parseColor(self, options.skeletonColor[1]);
 		local skeletonThickness = options.skeletonThickness or 1;
 		
-		-- HEAD CIRCLE (Face outline)
+		-- HEAD CIRCLE (made of lines in screen space)
 		if points.Head and points.Head[1] then
 			local head = findFirstChild(self.character, "Head");
 			if head then
-				local headPos, onScreen = worldToScreen(head.Position);
-				if onScreen then
-					-- Calculate head radius based on distance
-					local headSize = head.Size.Y;
-					local headTop = worldToScreen(head.Position + head.CFrame.UpVector * (headSize / 2));
-					local headCenter = worldToScreen(head.Position);
-					local radius = (headTop - headCenter).Magnitude;
-					
-					visible.skeletonFace.Position = headPos;
-					visible.skeletonFace.Radius = math.max(radius, 5);
-					visible.skeletonFace.Color = skeletonColor;
-					visible.skeletonFace.Thickness = skeletonThickness;
-					visible.skeletonFace.Transparency = options.skeletonColor[2];
-				end
+				-- Calculate head circle radius based on distance
+				local headPos, onScreenHead = worldToScreen(head.Position);
+				local headTop = worldToScreen(head.Position + head.CFrame.UpVector * (head.Size.Y / 2));
+				local headBottom = worldToScreen(head.Position - head.CFrame.UpVector * (head.Size.Y / 2));
+				local radius = (headTop - headBottom).Magnitude / 2;
+				
+				-- Update the face circle
+				updateLineCircle(
+					self.faceCircleLines,
+					headPos,
+					radius,
+					skeletonColor,
+					options.skeletonColor[2],
+					skeletonThickness,
+					onScreenHead
+				);
 			end
+		else
+			-- Hide face circle if head not found
+			updateLineCircle(
+				self.faceCircleLines,
+				Vector2.zero,
+				0,
+				skeletonColor,
+				options.skeletonColor[2],
+				skeletonThickness,
+				false
+			);
 		end
 		
 		-- Head to Upper Torso
@@ -528,7 +591,7 @@ function EspObject:Render()
 		
 		-- LEFT ARM (3 segments: UpperTorso → LeftUpperArm → LeftLowerArm → LeftHand)
 		if points.LeftArm and points.Torso and points.Torso[1] then
-			-- Shoulder to Elbow (UpperTorso to LeftUpperArm)
+			-- Shoulder to Elbow
 			if points.LeftArm[1] then
 				visible.skeletonLeftArm1.From = points.Torso[1];
 				visible.skeletonLeftArm1.To = points.LeftArm[1];
@@ -536,7 +599,7 @@ function EspObject:Render()
 				visible.skeletonLeftArm1.Thickness = skeletonThickness;
 				visible.skeletonLeftArm1.Transparency = options.skeletonColor[2];
 			end
-			-- Elbow to Wrist (LeftUpperArm to LeftLowerArm)
+			-- Elbow to Wrist
 			if points.LeftArm[1] and points.LeftArm[2] then
 				visible.skeletonLeftArm2.From = points.LeftArm[1];
 				visible.skeletonLeftArm2.To = points.LeftArm[2];
@@ -544,7 +607,7 @@ function EspObject:Render()
 				visible.skeletonLeftArm2.Thickness = skeletonThickness;
 				visible.skeletonLeftArm2.Transparency = options.skeletonColor[2];
 			end
-			-- Wrist to Hand (LeftLowerArm to LeftHand)
+			-- Wrist to Hand
 			if points.LeftArm[2] and points.LeftArm[3] then
 				visible.skeletonLeftArm3.From = points.LeftArm[2];
 				visible.skeletonLeftArm3.To = points.LeftArm[3];
@@ -556,7 +619,6 @@ function EspObject:Render()
 		
 		-- RIGHT ARM (3 segments)
 		if points.RightArm and points.Torso and points.Torso[1] then
-			-- Shoulder to Elbow
 			if points.RightArm[1] then
 				visible.skeletonRightArm1.From = points.Torso[1];
 				visible.skeletonRightArm1.To = points.RightArm[1];
@@ -564,7 +626,6 @@ function EspObject:Render()
 				visible.skeletonRightArm1.Thickness = skeletonThickness;
 				visible.skeletonRightArm1.Transparency = options.skeletonColor[2];
 			end
-			-- Elbow to Wrist
 			if points.RightArm[1] and points.RightArm[2] then
 				visible.skeletonRightArm2.From = points.RightArm[1];
 				visible.skeletonRightArm2.To = points.RightArm[2];
@@ -572,7 +633,6 @@ function EspObject:Render()
 				visible.skeletonRightArm2.Thickness = skeletonThickness;
 				visible.skeletonRightArm2.Transparency = options.skeletonColor[2];
 			end
-			-- Wrist to Hand
 			if points.RightArm[2] and points.RightArm[3] then
 				visible.skeletonRightArm3.From = points.RightArm[2];
 				visible.skeletonRightArm3.To = points.RightArm[3];
@@ -582,9 +642,8 @@ function EspObject:Render()
 			end
 		end
 		
-		-- LEFT LEG (3 segments: LowerTorso → LeftUpperLeg → LeftLowerLeg → LeftFoot)
+		-- LEFT LEG (3 segments)
 		if points.LeftLeg and points.Torso and points.Torso[2] then
-			-- Hip to Knee
 			if points.LeftLeg[1] then
 				visible.skeletonLeftLeg1.From = points.Torso[2];
 				visible.skeletonLeftLeg1.To = points.LeftLeg[1];
@@ -592,7 +651,6 @@ function EspObject:Render()
 				visible.skeletonLeftLeg1.Thickness = skeletonThickness;
 				visible.skeletonLeftLeg1.Transparency = options.skeletonColor[2];
 			end
-			-- Knee to Ankle
 			if points.LeftLeg[1] and points.LeftLeg[2] then
 				visible.skeletonLeftLeg2.From = points.LeftLeg[1];
 				visible.skeletonLeftLeg2.To = points.LeftLeg[2];
@@ -600,7 +658,6 @@ function EspObject:Render()
 				visible.skeletonLeftLeg2.Thickness = skeletonThickness;
 				visible.skeletonLeftLeg2.Transparency = options.skeletonColor[2];
 			end
-			-- Ankle to Foot
 			if points.LeftLeg[2] and points.LeftLeg[3] then
 				visible.skeletonLeftLeg3.From = points.LeftLeg[2];
 				visible.skeletonLeftLeg3.To = points.LeftLeg[3];
@@ -612,7 +669,6 @@ function EspObject:Render()
 		
 		-- RIGHT LEG (3 segments)
 		if points.RightLeg and points.Torso and points.Torso[2] then
-			-- Hip to Knee
 			if points.RightLeg[1] then
 				visible.skeletonRightLeg1.From = points.Torso[2];
 				visible.skeletonRightLeg1.To = points.RightLeg[1];
@@ -620,7 +676,6 @@ function EspObject:Render()
 				visible.skeletonRightLeg1.Thickness = skeletonThickness;
 				visible.skeletonRightLeg1.Transparency = options.skeletonColor[2];
 			end
-			-- Knee to Ankle
 			if points.RightLeg[1] and points.RightLeg[2] then
 				visible.skeletonRightLeg2.From = points.RightLeg[1];
 				visible.skeletonRightLeg2.To = points.RightLeg[2];
@@ -628,7 +683,6 @@ function EspObject:Render()
 				visible.skeletonRightLeg2.Thickness = skeletonThickness;
 				visible.skeletonRightLeg2.Transparency = options.skeletonColor[2];
 			end
-			-- Ankle to Foot
 			if points.RightLeg[2] and points.RightLeg[3] then
 				visible.skeletonRightLeg3.From = points.RightLeg[2];
 				visible.skeletonRightLeg3.To = points.RightLeg[3];
@@ -637,6 +691,17 @@ function EspObject:Render()
 				visible.skeletonRightLeg3.Transparency = options.skeletonColor[2];
 			end
 		end
+	else
+		-- Hide face circle when skeleton disabled
+		updateLineCircle(
+			self.faceCircleLines,
+			Vector2.zero,
+			0,
+			Color3.new(1,1,1),
+			0,
+			1,
+			false
+		);
 	end
 end
 
