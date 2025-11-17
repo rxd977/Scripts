@@ -198,16 +198,21 @@ function EspObject:Construct()
 			name = self:_create("Text", { Text = self.player.DisplayName or self.player.Name, Center = true, Visible = false }),
 			distance = self:_create("Text", { Center = true, Visible = false }),
 			weapon = self:_create("Text", { Center = true, Visible = false }),
+			skeletonFace = self:_create("Circle", { Thickness = 1, Visible = false, Radius = 8, NumSides = 30 }),
 			skeletonHead = self:_create("Line", { Thickness = 1, Visible = false }),
-			skeletonTorso = self:_create("Line", { Thickness = 1, Visible = false }),
+			skeletonTorso = self:_create("Line", { Thickness = 1, Visible = false }),	
 			skeletonLeftArm1 = self:_create("Line", { Thickness = 1, Visible = false }),
 			skeletonLeftArm2 = self:_create("Line", { Thickness = 1, Visible = false }),
+			skeletonLeftArm3 = self:_create("Line", { Thickness = 1, Visible = false }),	
 			skeletonRightArm1 = self:_create("Line", { Thickness = 1, Visible = false }),
 			skeletonRightArm2 = self:_create("Line", { Thickness = 1, Visible = false }),
+			skeletonRightArm3 = self:_create("Line", { Thickness = 1, Visible = false }),		
 			skeletonLeftLeg1 = self:_create("Line", { Thickness = 1, Visible = false }),
 			skeletonLeftLeg2 = self:_create("Line", { Thickness = 1, Visible = false }),
+			skeletonLeftLeg3 = self:_create("Line", { Thickness = 1, Visible = false }),	
 			skeletonRightLeg1 = self:_create("Line", { Thickness = 1, Visible = false }),
 			skeletonRightLeg2 = self:_create("Line", { Thickness = 1, Visible = false }),
+			skeletonRightLeg3 = self:_create("Line", { Thickness = 1, Visible = false }),
 		},
 		hidden = {
 			arrowOutline = self:_create("Triangle", { Thickness = 3, Visible = false }),
@@ -453,22 +458,51 @@ function EspObject:Render()
 		end
 	end
 
+	
 	local skeletonEnabled = enabled and onScreen and options.skeleton;
+	
+	-- Set all skeleton visibilities
+	visible.skeletonFace.Visible = skeletonEnabled;
 	visible.skeletonHead.Visible = skeletonEnabled;
 	visible.skeletonTorso.Visible = skeletonEnabled;
 	visible.skeletonLeftArm1.Visible = skeletonEnabled;
 	visible.skeletonLeftArm2.Visible = skeletonEnabled;
+	visible.skeletonLeftArm3.Visible = skeletonEnabled;
 	visible.skeletonRightArm1.Visible = skeletonEnabled;
 	visible.skeletonRightArm2.Visible = skeletonEnabled;
+	visible.skeletonRightArm3.Visible = skeletonEnabled;
 	visible.skeletonLeftLeg1.Visible = skeletonEnabled;
 	visible.skeletonLeftLeg2.Visible = skeletonEnabled;
+	visible.skeletonLeftLeg3.Visible = skeletonEnabled;
 	visible.skeletonRightLeg1.Visible = skeletonEnabled;
 	visible.skeletonRightLeg2.Visible = skeletonEnabled;
+	visible.skeletonRightLeg3.Visible = skeletonEnabled;
 
 	if skeletonEnabled and self.skeletonPoints then
 		local points = self.skeletonPoints;
 		local skeletonColor = parseColor(self, options.skeletonColor[1]);
 		local skeletonThickness = options.skeletonThickness or 1;
+		
+		-- HEAD CIRCLE (Face outline)
+		if points.Head and points.Head[1] then
+			local head = findFirstChild(self.character, "Head");
+			if head then
+				local headPos, onScreen = worldToScreen(head.Position);
+				if onScreen then
+					-- Calculate head radius based on distance
+					local headSize = head.Size.Y;
+					local headTop = worldToScreen(head.Position + head.CFrame.UpVector * (headSize / 2));
+					local headCenter = worldToScreen(head.Position);
+					local radius = (headTop - headCenter).Magnitude;
+					
+					visible.skeletonFace.Position = headPos;
+					visible.skeletonFace.Radius = math.max(radius, 5);
+					visible.skeletonFace.Color = skeletonColor;
+					visible.skeletonFace.Thickness = skeletonThickness;
+					visible.skeletonFace.Transparency = options.skeletonColor[2];
+				end
+			end
+		end
 		
 		-- Head to Upper Torso
 		if points.Head and points.Head[1] and points.Torso and points.Torso[1] then
@@ -479,6 +513,7 @@ function EspObject:Render()
 				visible.skeletonHead.To = points.Torso[1];
 				visible.skeletonHead.Color = skeletonColor;
 				visible.skeletonHead.Thickness = skeletonThickness;
+				visible.skeletonHead.Transparency = options.skeletonColor[2];
 			end
 		end
 		
@@ -488,69 +523,118 @@ function EspObject:Render()
 			visible.skeletonTorso.To = points.Torso[2];
 			visible.skeletonTorso.Color = skeletonColor;
 			visible.skeletonTorso.Thickness = skeletonThickness;
+			visible.skeletonTorso.Transparency = options.skeletonColor[2];
 		end
 		
-		-- Left Arm
+		-- LEFT ARM (3 segments: UpperTorso → LeftUpperArm → LeftLowerArm → LeftHand)
 		if points.LeftArm and points.Torso and points.Torso[1] then
+			-- Shoulder to Elbow (UpperTorso to LeftUpperArm)
 			if points.LeftArm[1] then
 				visible.skeletonLeftArm1.From = points.Torso[1];
 				visible.skeletonLeftArm1.To = points.LeftArm[1];
 				visible.skeletonLeftArm1.Color = skeletonColor;
 				visible.skeletonLeftArm1.Thickness = skeletonThickness;
+				visible.skeletonLeftArm1.Transparency = options.skeletonColor[2];
 			end
+			-- Elbow to Wrist (LeftUpperArm to LeftLowerArm)
 			if points.LeftArm[1] and points.LeftArm[2] then
 				visible.skeletonLeftArm2.From = points.LeftArm[1];
 				visible.skeletonLeftArm2.To = points.LeftArm[2];
 				visible.skeletonLeftArm2.Color = skeletonColor;
 				visible.skeletonLeftArm2.Thickness = skeletonThickness;
+				visible.skeletonLeftArm2.Transparency = options.skeletonColor[2];
+			end
+			-- Wrist to Hand (LeftLowerArm to LeftHand)
+			if points.LeftArm[2] and points.LeftArm[3] then
+				visible.skeletonLeftArm3.From = points.LeftArm[2];
+				visible.skeletonLeftArm3.To = points.LeftArm[3];
+				visible.skeletonLeftArm3.Color = skeletonColor;
+				visible.skeletonLeftArm3.Thickness = skeletonThickness;
+				visible.skeletonLeftArm3.Transparency = options.skeletonColor[2];
 			end
 		end
 		
-		-- Right Arm
+		-- RIGHT ARM (3 segments)
 		if points.RightArm and points.Torso and points.Torso[1] then
+			-- Shoulder to Elbow
 			if points.RightArm[1] then
 				visible.skeletonRightArm1.From = points.Torso[1];
 				visible.skeletonRightArm1.To = points.RightArm[1];
 				visible.skeletonRightArm1.Color = skeletonColor;
 				visible.skeletonRightArm1.Thickness = skeletonThickness;
+				visible.skeletonRightArm1.Transparency = options.skeletonColor[2];
 			end
+			-- Elbow to Wrist
 			if points.RightArm[1] and points.RightArm[2] then
 				visible.skeletonRightArm2.From = points.RightArm[1];
 				visible.skeletonRightArm2.To = points.RightArm[2];
 				visible.skeletonRightArm2.Color = skeletonColor;
 				visible.skeletonRightArm2.Thickness = skeletonThickness;
+				visible.skeletonRightArm2.Transparency = options.skeletonColor[2];
+			end
+			-- Wrist to Hand
+			if points.RightArm[2] and points.RightArm[3] then
+				visible.skeletonRightArm3.From = points.RightArm[2];
+				visible.skeletonRightArm3.To = points.RightArm[3];
+				visible.skeletonRightArm3.Color = skeletonColor;
+				visible.skeletonRightArm3.Thickness = skeletonThickness;
+				visible.skeletonRightArm3.Transparency = options.skeletonColor[2];
 			end
 		end
 		
-		-- Left Leg
+		-- LEFT LEG (3 segments: LowerTorso → LeftUpperLeg → LeftLowerLeg → LeftFoot)
 		if points.LeftLeg and points.Torso and points.Torso[2] then
+			-- Hip to Knee
 			if points.LeftLeg[1] then
 				visible.skeletonLeftLeg1.From = points.Torso[2];
 				visible.skeletonLeftLeg1.To = points.LeftLeg[1];
 				visible.skeletonLeftLeg1.Color = skeletonColor;
 				visible.skeletonLeftLeg1.Thickness = skeletonThickness;
+				visible.skeletonLeftLeg1.Transparency = options.skeletonColor[2];
 			end
+			-- Knee to Ankle
 			if points.LeftLeg[1] and points.LeftLeg[2] then
 				visible.skeletonLeftLeg2.From = points.LeftLeg[1];
 				visible.skeletonLeftLeg2.To = points.LeftLeg[2];
 				visible.skeletonLeftLeg2.Color = skeletonColor;
 				visible.skeletonLeftLeg2.Thickness = skeletonThickness;
+				visible.skeletonLeftLeg2.Transparency = options.skeletonColor[2];
+			end
+			-- Ankle to Foot
+			if points.LeftLeg[2] and points.LeftLeg[3] then
+				visible.skeletonLeftLeg3.From = points.LeftLeg[2];
+				visible.skeletonLeftLeg3.To = points.LeftLeg[3];
+				visible.skeletonLeftLeg3.Color = skeletonColor;
+				visible.skeletonLeftLeg3.Thickness = skeletonThickness;
+				visible.skeletonLeftLeg3.Transparency = options.skeletonColor[2];
 			end
 		end
 		
-		-- Right Leg
+		-- RIGHT LEG (3 segments)
 		if points.RightLeg and points.Torso and points.Torso[2] then
+			-- Hip to Knee
 			if points.RightLeg[1] then
 				visible.skeletonRightLeg1.From = points.Torso[2];
 				visible.skeletonRightLeg1.To = points.RightLeg[1];
 				visible.skeletonRightLeg1.Color = skeletonColor;
 				visible.skeletonRightLeg1.Thickness = skeletonThickness;
+				visible.skeletonRightLeg1.Transparency = options.skeletonColor[2];
 			end
+			-- Knee to Ankle
 			if points.RightLeg[1] and points.RightLeg[2] then
 				visible.skeletonRightLeg2.From = points.RightLeg[1];
 				visible.skeletonRightLeg2.To = points.RightLeg[2];
 				visible.skeletonRightLeg2.Color = skeletonColor;
 				visible.skeletonRightLeg2.Thickness = skeletonThickness;
+				visible.skeletonRightLeg2.Transparency = options.skeletonColor[2];
+			end
+			-- Ankle to Foot
+			if points.RightLeg[2] and points.RightLeg[3] then
+				visible.skeletonRightLeg3.From = points.RightLeg[2];
+				visible.skeletonRightLeg3.To = points.RightLeg[3];
+				visible.skeletonRightLeg3.Color = skeletonColor;
+				visible.skeletonRightLeg3.Thickness = skeletonThickness;
+				visible.skeletonRightLeg3.Transparency = options.skeletonColor[2];
 			end
 		end
 	end
