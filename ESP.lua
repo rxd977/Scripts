@@ -291,59 +291,38 @@ function EspObject:Update()
 	local interface = self.interface;
 
 	self.options = interface.teamSettings[interface.isFriendly(self.player) and "friendly" or "enemy"];
+	
+	-- CHECK ENABLED FIRST - before getting character
+	self.enabled = self.options.enabled and not
+		(#interface.whitelist > 0 and not find(interface.whitelist, self.player.UserId));
+	
+	if not self.enabled then
+		self.onScreen = false;
+		return; -- SKIP EVERYTHING IF DISABLED
+	end
+	
 	self.character = interface.getCharacter(self.player);
 	self.health, self.maxHealth = interface.getHealth(self.player);
 	self.weapon = interface.getWeapon(self.player);
-	self.enabled = self.options.enabled and not
-		(#interface.whitelist > 0 and not find(interface.whitelist, self.player.UserId));
 
-	-- Try to get actor position as fallback
-	local actorPosition = nil;
-	if self.player._actor then
-		actorPosition = self.player._actor.ServerPosition or self.player._actor.Position;
+	-- CRITICAL: Early exit if no character
+	if not self.character then
+		self.charCache = {};
+		self.onScreen = false;
+		self.usingFallback = false;
+		return; -- SKIP ALL EXPENSIVE CALCULATIONS
 	end
 
 	-- Check if we have a rendered character with head
-	local head = self.enabled and self.character and findFirstChild(self.character, "Head");
-	
-	if not head and actorPosition and self.enabled then
-		-- FALLBACK MODE: Character not rendered, use actor position
-		local estimatedHeadPos = actorPosition + Vector3.new(0, 2, 0);
-		local _, onScreen, depth = worldToScreen(estimatedHeadPos);
-		self.onScreen = onScreen;
-		self.distance = depth;
-		self.usingFallback = true;
-
-		if interface.sharedSettings.limitDistance and depth > interface.sharedSettings.maxDistance then
-			self.onScreen = false;
-		end
-
-		if self.onScreen then
-			-- Create estimated bounding box from position
-			local estimatedSize = Vector3.new(4, 6, 2); -- Approximate humanoid size
-			local estimatedCFrame = CFrame.new(actorPosition + Vector3.new(0, 1, 0)); -- Center at torso height
-			
-			self.corners = calculateCorners(estimatedCFrame, estimatedSize);
-			self.skeletonPoints = nil; -- Will trigger fallback skeleton rendering
-		elseif self.options.offScreenArrow then
-			local cframe = camera.CFrame;
-			local flat = fromMatrix(cframe.Position, cframe.RightVector, Vector3.yAxis);
-			local objectSpace = pointToObjectSpace(flat, estimatedHeadPos);
-			self.direction = Vector2.new(objectSpace.X, objectSpace.Z).Unit;
-		end
-		
-		return;
-	end
+	local head = findFirstChild(self.character, "Head");
 	
 	if not head then
 		self.charCache = {};
 		self.onScreen = false;
-		self.usingFallback = false;
 		return;
 	end
 
 	-- NORMAL MODE: Character is rendered
-	self.usingFallback = false;
 	local _, onScreen, depth = worldToScreen(head.Position);
 	self.onScreen = onScreen;
 	self.distance = depth;
@@ -772,22 +751,34 @@ function ChamObject:Destruct()
 end
 
 function ChamObject:Update()
-	local highlight = self.highlight;
 	local interface = self.interface;
-	local character = interface.getCharacter(self.player);
 	local options = interface.teamSettings[interface.isFriendly(self.player) and "friendly" or "enemy"];
-	local enabled = options.enabled and character and not
+	
+	-- Early exit if not enabled
+	local enabled = options.enabled and not
 		(#interface.whitelist > 0 and not find(interface.whitelist, self.player.UserId));
-
-	highlight.Enabled = enabled and options.chams;
-	if highlight.Enabled then
-		highlight.Adornee = character;
-		highlight.FillColor = parseColor(self, options.chamsFillColor[1]);
-		highlight.FillTransparency = options.chamsFillColor[2];
-		highlight.OutlineColor = parseColor(self, options.chamsOutlineColor[1], true);
-		highlight.OutlineTransparency = options.chamsOutlineColor[2];
-		highlight.DepthMode = options.chamsVisibleOnly and "Occluded" or "AlwaysOnTop";
+	
+	if not enabled or not options.chams then
+		self.highlight.Enabled = false;
+		return; -- SKIP EVERYTHING
 	end
+	
+	local character = interface.getCharacter(self.player);
+	
+	-- Early exit if no character
+	if not character then
+		self.highlight.Enabled = false;
+		return; -- SKIP EVERYTHING
+	end
+
+	local highlight = self.highlight;
+	highlight.Enabled = true;
+	highlight.Adornee = character;
+	highlight.FillColor = parseColor(self, options.chamsFillColor[1]);
+	highlight.FillTransparency = options.chamsFillColor[2];
+	highlight.OutlineColor = parseColor(self, options.chamsOutlineColor[1], true);
+	highlight.OutlineTransparency = options.chamsOutlineColor[2];
+	highlight.DepthMode = options.chamsVisibleOnly and "Occluded" or "AlwaysOnTop";
 end
 
 -- instance class
