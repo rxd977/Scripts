@@ -200,8 +200,8 @@ function EspObject:Construct()
 	self.childCount = 0;
 	self.bin = {};
 	
-	-- Create face circle lines (36 segments for smooth circle)
-	self.faceCircleLines = createLineCircle(36, 1);
+	-- Create face circle lines (12 segments - reduced from 36)
+	self.faceCircleLines = createLineCircle(12, 1);
 	for i = 1, #self.faceCircleLines do
 		self.bin[#self.bin + 1] = self.faceCircleLines[i];
 	end
@@ -271,14 +271,11 @@ function EspObject:Construct()
 		}
 	};
 
-	self.renderConnection = runService.Heartbeat:Connect(function(deltaTime)
-		self:Update(deltaTime);
-		self:Render(deltaTime);
-	end);
+	-- NO LONGER CREATE CONNECTION HERE - will be handled by shared connection
 end
 
 function EspObject:Destruct()
-	self.renderConnection:Disconnect();
+	-- NO LONGER DISCONNECT CONNECTION HERE - handled by shared connection
 
 	for i = 1, #self.bin do
 		self.bin[i]:Remove();
@@ -302,16 +299,16 @@ function EspObject:Update()
 	end
 	
 	self.character = interface.getCharacter(self.player);
-	self.health, self.maxHealth = interface.getHealth(self.player);
-	self.weapon = interface.getWeapon(self.player);
-
-	-- CRITICAL: Early exit if no character
-	if not self.character then
+	
+	-- CRITICAL: Early exit if no character OR if character is not in workspace
+	if not self.character or self.character.Parent ~= workspace then
 		self.charCache = {};
 		self.onScreen = false;
-		self.usingFallback = false;
 		return; -- SKIP ALL EXPENSIVE CALCULATIONS
 	end
+	
+	self.health, self.maxHealth = interface.getHealth(self.player);
+	self.weapon = interface.getWeapon(self.player);
 
 	-- Check if we have a rendered character with head
 	local head = findFirstChild(self.character, "Head");
@@ -738,18 +735,15 @@ end
 
 function ChamObject:Construct()
 	self.highlight = Instance.new("Highlight", container);
-	self.updateConnection = runService.Heartbeat:Connect(function()
-		self:Update();
-	end);
+	-- NO LONGER CREATE CONNECTION HERE - will be handled by shared connection
 end
 
 function ChamObject:Destruct()
-	self.updateConnection:Disconnect();
+	-- NO LONGER DISCONNECT CONNECTION HERE - handled by shared connection
 	self.highlight:Destroy();
 
 	clear(self);
 end
-
 function ChamObject:Update()
 	local interface = self.interface;
 	local options = interface.teamSettings[interface.isFriendly(self.player) and "friendly" or "enemy"];
@@ -765,8 +759,8 @@ function ChamObject:Update()
 	
 	local character = interface.getCharacter(self.player);
 	
-	-- Early exit if no character
-	if not character then
+	-- Early exit if no character OR if character is not in workspace
+	if not character or character.Parent ~= workspace then
 		self.highlight.Enabled = false;
 		return; -- SKIP EVERYTHING
 	end
@@ -857,6 +851,7 @@ end
 local EspInterface = {
 	_hasLoaded = false,
 	_objectCache = {},
+	_sharedUpdateConnection = nil,
 	whitelist = {},
 	sharedSettings = {
 		textSize = 13,
@@ -1055,7 +1050,7 @@ end
 	STANDARD PLAYER-BASED LOAD (Works like original)
 ]]
 function EspInterface.Load()
-	return EspInterface.LoadCustom(
+	local cleanup = EspInterface.LoadCustom(
 		-- onEntityAdded
 		function(player)
 			EspInterface.AddEntity(player, player.UserId);
@@ -1074,10 +1069,33 @@ function EspInterface.Load()
 			return entities;
 		end
 	);
+	
+	-- SINGLE SHARED UPDATE CONNECTION FOR ALL ENTITIES
+	EspInterface._sharedUpdateConnection = runService.Heartbeat:Connect(function(deltaTime)
+		for _, object in pairs(EspInterface._objectCache) do
+			-- Update ESP object (index 1)
+			if object[1] and object[1].Update then
+				object[1]:Update(deltaTime);
+				object[1]:Render(deltaTime);
+			end
+			-- Update Cham object (index 2)
+			if object[2] and object[2].Update then
+				object[2]:Update();
+			end
+		end
+	end);
+	
+	return cleanup;
 end
 
 function EspInterface.Unload()
 	assert(EspInterface._hasLoaded, "Esp has not been loaded yet.");
+
+	-- Disconnect shared connection FIRST
+	if EspInterface._sharedUpdateConnection then
+		EspInterface._sharedUpdateConnection:Disconnect();
+		EspInterface._sharedUpdateConnection = nil;
+	end
 
 	for index, object in next, EspInterface._objectCache do
 		for i = 1, #object do
@@ -1098,7 +1116,6 @@ function EspInterface.Unload()
 	EspInterface._hasLoaded = false;
 	EspInterface._customCallbacks = nil;
 end
-
 -- game specific functions (CUSTOMIZE THESE FOR YOUR GAME)
 function EspInterface.getWeapon(player)
 	-- For standard Player objects
