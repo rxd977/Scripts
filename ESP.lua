@@ -112,7 +112,7 @@ local function rotateVector(vector, radians)
 end
 
 local function parseColor(self, color, isOutline)
-	if color == "Team Color" or (self.interface.sharedSettings.useTeamColor and not isOutline) then
+	if color == "Team Color" or (self.interface.sharedSettings.useTeamColor) then -- or not isOutline
 		return self.interface.getTeamColor(self.player) or Color3.new(1,1,1);
 	end
 	return color;
