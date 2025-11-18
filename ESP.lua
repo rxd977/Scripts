@@ -355,10 +355,64 @@ function EspObject:Update()
 end
 
 function EspObject:Render()
+	-- CRITICAL: Early exit if disabled or no options
+	if not self.enabled or not self.options then
+		return;
+	end
+	
 	local onScreen = self.onScreen or false;
-	local enabled = self.enabled or false;
+	local enabled = self.enabled;
 	local visible = self.drawings.visible;
 	local hidden = self.drawings.hidden;
+	
+	-- Early exit if not on screen and no off-screen features enabled
+	if not onScreen and not self.options.offScreenArrow then
+		-- Fast hide all visible drawings
+		visible.box.Visible = false;
+		visible.boxOutline.Visible = false;
+		visible.boxFill.Visible = false;
+		visible.healthBar.Visible = false;
+		visible.healthBarOutline.Visible = false;
+		visible.healthText.Visible = false;
+		visible.name.Visible = false;
+		visible.distance.Visible = false;
+		visible.weapon.Visible = false;
+		visible.tracer.Visible = false;
+		visible.tracerOutline.Visible = false;
+		visible.skeletonHead.Visible = false;
+		visible.skeletonTorso.Visible = false;
+		visible.skeletonLeftArm1.Visible = false;
+		visible.skeletonLeftArm2.Visible = false;
+		visible.skeletonLeftArm3.Visible = false;
+		visible.skeletonRightArm1.Visible = false;
+		visible.skeletonRightArm2.Visible = false;
+		visible.skeletonRightArm3.Visible = false;
+		visible.skeletonLeftLeg1.Visible = false;
+		visible.skeletonLeftLeg2.Visible = false;
+		visible.skeletonLeftLeg3.Visible = false;
+		visible.skeletonRightLeg1.Visible = false;
+		visible.skeletonRightLeg2.Visible = false;
+		visible.skeletonRightLeg3.Visible = false;
+		hidden.arrow.Visible = false;
+		hidden.arrowOutline.Visible = false;
+		
+		-- Hide face circle
+		for i = 1, #self.faceCircleLines do
+			self.faceCircleLines[i].Visible = false;
+		end
+		
+		-- Hide 3D box
+		local box3d = self.drawings.box3d;
+		for i = 1, #box3d do
+			local face = box3d[i];
+			for i2 = 1, #face do
+				face[i2].Visible = false;
+			end
+		end
+		
+		return;
+	end
+	
 	local box3d = self.drawings.box3d;
 	local interface = self.interface;
 	local options = self.options;
@@ -506,8 +560,10 @@ function EspObject:Render()
 		for i2 = 1, #face do
 			local line = face[i2];
 			line.Visible = box3dEnabled;
-			line.Color = parseColor(self, options.box3dColor[1]);
-			line.Transparency = options.box3dColor[2];
+			if box3dEnabled then
+				line.Color = parseColor(self, options.box3dColor[1]);
+				line.Transparency = options.box3dColor[2];
+			end
 		end
 
 		if box3dEnabled then
@@ -525,10 +581,64 @@ function EspObject:Render()
 		end
 	end
 
-	
+	-- SKELETON - OPTIMIZED
 	local skeletonEnabled = enabled and onScreen and options.skeleton;
 	
-	-- Set all skeleton visibilities
+	-- Fast path - skeleton disabled
+	if not skeletonEnabled then
+		visible.skeletonHead.Visible = false;
+		visible.skeletonTorso.Visible = false;
+		visible.skeletonLeftArm1.Visible = false;
+		visible.skeletonLeftArm2.Visible = false;
+		visible.skeletonLeftArm3.Visible = false;
+		visible.skeletonRightArm1.Visible = false;
+		visible.skeletonRightArm2.Visible = false;
+		visible.skeletonRightArm3.Visible = false;
+		visible.skeletonLeftLeg1.Visible = false;
+		visible.skeletonLeftLeg2.Visible = false;
+		visible.skeletonLeftLeg3.Visible = false;
+		visible.skeletonRightLeg1.Visible = false;
+		visible.skeletonRightLeg2.Visible = false;
+		visible.skeletonRightLeg3.Visible = false;
+		
+		-- Hide face circle
+		for i = 1, #self.faceCircleLines do
+			self.faceCircleLines[i].Visible = false;
+		end
+		
+		return; -- SKIP ALL SKELETON CALCULATIONS
+	end
+	
+	-- Skeleton is enabled - process it
+	local points = self.skeletonPoints;
+	if not points then
+		-- No skeleton points, hide everything
+		visible.skeletonHead.Visible = false;
+		visible.skeletonTorso.Visible = false;
+		visible.skeletonLeftArm1.Visible = false;
+		visible.skeletonLeftArm2.Visible = false;
+		visible.skeletonLeftArm3.Visible = false;
+		visible.skeletonRightArm1.Visible = false;
+		visible.skeletonRightArm2.Visible = false;
+		visible.skeletonRightArm3.Visible = false;
+		visible.skeletonLeftLeg1.Visible = false;
+		visible.skeletonLeftLeg2.Visible = false;
+		visible.skeletonLeftLeg3.Visible = false;
+		visible.skeletonRightLeg1.Visible = false;
+		visible.skeletonRightLeg2.Visible = false;
+		visible.skeletonRightLeg3.Visible = false;
+		
+		for i = 1, #self.faceCircleLines do
+			self.faceCircleLines[i].Visible = false;
+		end
+		return;
+	end
+	
+	local skeletonColor = parseColor(self, options.skeletonColor[1]);
+	local skeletonThickness = options.skeletonThickness or 1;
+	local character = self.character;
+	
+	-- Set all to visible first
 	visible.skeletonHead.Visible = skeletonEnabled;
 	visible.skeletonTorso.Visible = skeletonEnabled;
 	visible.skeletonLeftArm1.Visible = skeletonEnabled;
@@ -543,181 +653,201 @@ function EspObject:Render()
 	visible.skeletonRightLeg1.Visible = skeletonEnabled;
 	visible.skeletonRightLeg2.Visible = skeletonEnabled;
 	visible.skeletonRightLeg3.Visible = skeletonEnabled;
-
-	if skeletonEnabled and self.skeletonPoints then
-		local points = self.skeletonPoints;
-		local skeletonColor = parseColor(self, options.skeletonColor[1]);
-		local skeletonThickness = options.skeletonThickness or 1;
+	
+	-- Cache head - only get it once
+	local head = character and findFirstChild(character, "Head");
+	
+	-- HEAD CIRCLE
+	if points.Head and points.Head[1] and head then
+		local headPos, onScreenHead = worldToScreen(head.Position);
+		local headTop = worldToScreen(head.Position + head.CFrame.UpVector * (head.Size.Y / 2));
+		local headBottom = worldToScreen(head.Position - head.CFrame.UpVector * (head.Size.Y / 2));
+		local radius = (headTop - headBottom).Magnitude / 2;
 		
-		-- HEAD CIRCLE (made of lines in screen space)
-		if points.Head and points.Head[1] then
-			local head = findFirstChild(self.character, "Head");
-			if head then
-				-- Calculate head circle radius based on distance
-				local headPos, onScreenHead = worldToScreen(head.Position);
-				local headTop = worldToScreen(head.Position + head.CFrame.UpVector * (head.Size.Y / 2));
-				local headBottom = worldToScreen(head.Position - head.CFrame.UpVector * (head.Size.Y / 2));
-				local radius = (headTop - headBottom).Magnitude / 2;
-				
-				-- Update the face circle
-				updateLineCircle(
-					self.faceCircleLines,
-					headPos,
-					radius,
-					skeletonColor,
-					options.skeletonColor[2],
-					skeletonThickness,
-					onScreenHead
-				);
-			end
-		else
-			-- Hide face circle if head not found
-			updateLineCircle(
-				self.faceCircleLines,
-				Vector2.zero,
-				0,
-				skeletonColor,
-				options.skeletonColor[2],
-				skeletonThickness,
-				false
-			);
-		end
-		
-		-- Head to Upper Torso
-		if points.Head and points.Head[1] and points.Torso and points.Torso[1] then
-			local head = findFirstChild(self.character, "Head");
-			if head then
-				local headBottom = worldToScreen(head.Position - head.CFrame.UpVector * (head.Size.Y / 2));
-				visible.skeletonHead.From = headBottom;
-				visible.skeletonHead.To = points.Torso[1];
-				visible.skeletonHead.Color = skeletonColor;
-				visible.skeletonHead.Thickness = skeletonThickness;
-				visible.skeletonHead.Transparency = options.skeletonColor[2];
-			end
-		end
-		
-		-- Upper Torso to Lower Torso
-		if points.Torso and points.Torso[1] and points.Torso[2] then
-			visible.skeletonTorso.From = points.Torso[1];
-			visible.skeletonTorso.To = points.Torso[2];
-			visible.skeletonTorso.Color = skeletonColor;
-			visible.skeletonTorso.Thickness = skeletonThickness;
-			visible.skeletonTorso.Transparency = options.skeletonColor[2];
-		end
-		
-		-- LEFT ARM (3 segments: UpperTorso → LeftUpperArm → LeftLowerArm → LeftHand)
-		if points.LeftArm and points.Torso and points.Torso[1] then
-			-- Shoulder to Elbow
-			if points.LeftArm[1] then
-				visible.skeletonLeftArm1.From = points.Torso[1];
-				visible.skeletonLeftArm1.To = points.LeftArm[1];
-				visible.skeletonLeftArm1.Color = skeletonColor;
-				visible.skeletonLeftArm1.Thickness = skeletonThickness;
-				visible.skeletonLeftArm1.Transparency = options.skeletonColor[2];
-			end
-			-- Elbow to Wrist
-			if points.LeftArm[1] and points.LeftArm[2] then
-				visible.skeletonLeftArm2.From = points.LeftArm[1];
-				visible.skeletonLeftArm2.To = points.LeftArm[2];
-				visible.skeletonLeftArm2.Color = skeletonColor;
-				visible.skeletonLeftArm2.Thickness = skeletonThickness;
-				visible.skeletonLeftArm2.Transparency = options.skeletonColor[2];
-			end
-			-- Wrist to Hand
-			if points.LeftArm[2] and points.LeftArm[3] then
-				visible.skeletonLeftArm3.From = points.LeftArm[2];
-				visible.skeletonLeftArm3.To = points.LeftArm[3];
-				visible.skeletonLeftArm3.Color = skeletonColor;
-				visible.skeletonLeftArm3.Thickness = skeletonThickness;
-				visible.skeletonLeftArm3.Transparency = options.skeletonColor[2];
-			end
-		end
-		
-		-- RIGHT ARM (3 segments)
-		if points.RightArm and points.Torso and points.Torso[1] then
-			if points.RightArm[1] then
-				visible.skeletonRightArm1.From = points.Torso[1];
-				visible.skeletonRightArm1.To = points.RightArm[1];
-				visible.skeletonRightArm1.Color = skeletonColor;
-				visible.skeletonRightArm1.Thickness = skeletonThickness;
-				visible.skeletonRightArm1.Transparency = options.skeletonColor[2];
-			end
-			if points.RightArm[1] and points.RightArm[2] then
-				visible.skeletonRightArm2.From = points.RightArm[1];
-				visible.skeletonRightArm2.To = points.RightArm[2];
-				visible.skeletonRightArm2.Color = skeletonColor;
-				visible.skeletonRightArm2.Thickness = skeletonThickness;
-				visible.skeletonRightArm2.Transparency = options.skeletonColor[2];
-			end
-			if points.RightArm[2] and points.RightArm[3] then
-				visible.skeletonRightArm3.From = points.RightArm[2];
-				visible.skeletonRightArm3.To = points.RightArm[3];
-				visible.skeletonRightArm3.Color = skeletonColor;
-				visible.skeletonRightArm3.Thickness = skeletonThickness;
-				visible.skeletonRightArm3.Transparency = options.skeletonColor[2];
-			end
-		end
-		
-		-- LEFT LEG (3 segments)
-		if points.LeftLeg and points.Torso and points.Torso[2] then
-			if points.LeftLeg[1] then
-				visible.skeletonLeftLeg1.From = points.Torso[2];
-				visible.skeletonLeftLeg1.To = points.LeftLeg[1];
-				visible.skeletonLeftLeg1.Color = skeletonColor;
-				visible.skeletonLeftLeg1.Thickness = skeletonThickness;
-				visible.skeletonLeftLeg1.Transparency = options.skeletonColor[2];
-			end
-			if points.LeftLeg[1] and points.LeftLeg[2] then
-				visible.skeletonLeftLeg2.From = points.LeftLeg[1];
-				visible.skeletonLeftLeg2.To = points.LeftLeg[2];
-				visible.skeletonLeftLeg2.Color = skeletonColor;
-				visible.skeletonLeftLeg2.Thickness = skeletonThickness;
-				visible.skeletonLeftLeg2.Transparency = options.skeletonColor[2];
-			end
-			if points.LeftLeg[2] and points.LeftLeg[3] then
-				visible.skeletonLeftLeg3.From = points.LeftLeg[2];
-				visible.skeletonLeftLeg3.To = points.LeftLeg[3];
-				visible.skeletonLeftLeg3.Color = skeletonColor;
-				visible.skeletonLeftLeg3.Thickness = skeletonThickness;
-				visible.skeletonLeftLeg3.Transparency = options.skeletonColor[2];
-			end
-		end
-		
-		-- RIGHT LEG (3 segments)
-		if points.RightLeg and points.Torso and points.Torso[2] then
-			if points.RightLeg[1] then
-				visible.skeletonRightLeg1.From = points.Torso[2];
-				visible.skeletonRightLeg1.To = points.RightLeg[1];
-				visible.skeletonRightLeg1.Color = skeletonColor;
-				visible.skeletonRightLeg1.Thickness = skeletonThickness;
-				visible.skeletonRightLeg1.Transparency = options.skeletonColor[2];
-			end
-			if points.RightLeg[1] and points.RightLeg[2] then
-				visible.skeletonRightLeg2.From = points.RightLeg[1];
-				visible.skeletonRightLeg2.To = points.RightLeg[2];
-				visible.skeletonRightLeg2.Color = skeletonColor;
-				visible.skeletonRightLeg2.Thickness = skeletonThickness;
-				visible.skeletonRightLeg2.Transparency = options.skeletonColor[2];
-			end
-			if points.RightLeg[2] and points.RightLeg[3] then
-				visible.skeletonRightLeg3.From = points.RightLeg[2];
-				visible.skeletonRightLeg3.To = points.RightLeg[3];
-				visible.skeletonRightLeg3.Color = skeletonColor;
-				visible.skeletonRightLeg3.Thickness = skeletonThickness;
-				visible.skeletonRightLeg3.Transparency = options.skeletonColor[2];
-			end
-		end
-	else
-		-- Hide face circle when skeleton disabled
 		updateLineCircle(
 			self.faceCircleLines,
-			Vector2.zero,
-			0,
-			Color3.new(1,1,1),
-			0,
-			1,
-			false
+			headPos,
+			radius,
+			skeletonColor,
+			options.skeletonColor[2],
+			skeletonThickness,
+			onScreenHead
 		);
+	else
+		for i = 1, #self.faceCircleLines do
+			self.faceCircleLines[i].Visible = false;
+		end
+	end
+	
+	-- Head to Upper Torso (reuse cached head)
+	if points.Head and points.Head[1] and points.Torso and points.Torso[1] and head then
+		local headBottom = worldToScreen(head.Position - head.CFrame.UpVector * (head.Size.Y / 2));
+		visible.skeletonHead.From = headBottom;
+		visible.skeletonHead.To = points.Torso[1];
+		visible.skeletonHead.Color = skeletonColor;
+		visible.skeletonHead.Thickness = skeletonThickness;
+		visible.skeletonHead.Transparency = options.skeletonColor[2];
+	else
+		visible.skeletonHead.Visible = false;
+	end
+	
+	-- Upper Torso to Lower Torso
+	if points.Torso and points.Torso[1] and points.Torso[2] then
+		visible.skeletonTorso.From = points.Torso[1];
+		visible.skeletonTorso.To = points.Torso[2];
+		visible.skeletonTorso.Color = skeletonColor;
+		visible.skeletonTorso.Thickness = skeletonThickness;
+		visible.skeletonTorso.Transparency = options.skeletonColor[2];
+	else
+		visible.skeletonTorso.Visible = false;
+	end
+	
+	-- LEFT ARM (3 segments)
+	if points.LeftArm and points.Torso and points.Torso[1] then
+		if points.LeftArm[1] then
+			visible.skeletonLeftArm1.From = points.Torso[1];
+			visible.skeletonLeftArm1.To = points.LeftArm[1];
+			visible.skeletonLeftArm1.Color = skeletonColor;
+			visible.skeletonLeftArm1.Thickness = skeletonThickness;
+			visible.skeletonLeftArm1.Transparency = options.skeletonColor[2];
+		else
+			visible.skeletonLeftArm1.Visible = false;
+		end
+		
+		if points.LeftArm[1] and points.LeftArm[2] then
+			visible.skeletonLeftArm2.From = points.LeftArm[1];
+			visible.skeletonLeftArm2.To = points.LeftArm[2];
+			visible.skeletonLeftArm2.Color = skeletonColor;
+			visible.skeletonLeftArm2.Thickness = skeletonThickness;
+			visible.skeletonLeftArm2.Transparency = options.skeletonColor[2];
+		else
+			visible.skeletonLeftArm2.Visible = false;
+		end
+		
+		if points.LeftArm[2] and points.LeftArm[3] then
+			visible.skeletonLeftArm3.From = points.LeftArm[2];
+			visible.skeletonLeftArm3.To = points.LeftArm[3];
+			visible.skeletonLeftArm3.Color = skeletonColor;
+			visible.skeletonLeftArm3.Thickness = skeletonThickness;
+			visible.skeletonLeftArm3.Transparency = options.skeletonColor[2];
+		else
+			visible.skeletonLeftArm3.Visible = false;
+		end
+	else
+		visible.skeletonLeftArm1.Visible = false;
+		visible.skeletonLeftArm2.Visible = false;
+		visible.skeletonLeftArm3.Visible = false;
+	end
+	
+	-- RIGHT ARM (3 segments)
+	if points.RightArm and points.Torso and points.Torso[1] then
+		if points.RightArm[1] then
+			visible.skeletonRightArm1.From = points.Torso[1];
+			visible.skeletonRightArm1.To = points.RightArm[1];
+			visible.skeletonRightArm1.Color = skeletonColor;
+			visible.skeletonRightArm1.Thickness = skeletonThickness;
+			visible.skeletonRightArm1.Transparency = options.skeletonColor[2];
+		else
+			visible.skeletonRightArm1.Visible = false;
+		end
+		
+		if points.RightArm[1] and points.RightArm[2] then
+			visible.skeletonRightArm2.From = points.RightArm[1];
+			visible.skeletonRightArm2.To = points.RightArm[2];
+			visible.skeletonRightArm2.Color = skeletonColor;
+			visible.skeletonRightArm2.Thickness = skeletonThickness;
+			visible.skeletonRightArm2.Transparency = options.skeletonColor[2];
+		else
+			visible.skeletonRightArm2.Visible = false;
+		end
+		
+		if points.RightArm[2] and points.RightArm[3] then
+			visible.skeletonRightArm3.From = points.RightArm[2];
+			visible.skeletonRightArm3.To = points.RightArm[3];
+			visible.skeletonRightArm3.Color = skeletonColor;
+			visible.skeletonRightArm3.Thickness = skeletonThickness;
+			visible.skeletonRightArm3.Transparency = options.skeletonColor[2];
+		else
+			visible.skeletonRightArm3.Visible = false;
+		end
+	else
+		visible.skeletonRightArm1.Visible = false;
+		visible.skeletonRightArm2.Visible = false;
+		visible.skeletonRightArm3.Visible = false;
+	end
+	
+	-- LEFT LEG (3 segments)
+	if points.LeftLeg and points.Torso and points.Torso[2] then
+		if points.LeftLeg[1] then
+			visible.skeletonLeftLeg1.From = points.Torso[2];
+			visible.skeletonLeftLeg1.To = points.LeftLeg[1];
+			visible.skeletonLeftLeg1.Color = skeletonColor;
+			visible.skeletonLeftLeg1.Thickness = skeletonThickness;
+			visible.skeletonLeftLeg1.Transparency = options.skeletonColor[2];
+		else
+			visible.skeletonLeftLeg1.Visible = false;
+		end
+		
+		if points.LeftLeg[1] and points.LeftLeg[2] then
+			visible.skeletonLeftLeg2.From = points.LeftLeg[1];
+			visible.skeletonLeftLeg2.To = points.LeftLeg[2];
+			visible.skeletonLeftLeg2.Color = skeletonColor;
+			visible.skeletonLeftLeg2.Thickness = skeletonThickness;
+			visible.skeletonLeftLeg2.Transparency = options.skeletonColor[2];
+		else
+			visible.skeletonLeftLeg2.Visible = false;
+		end
+		
+		if points.LeftLeg[2] and points.LeftLeg[3] then
+			visible.skeletonLeftLeg3.From = points.LeftLeg[2];
+			visible.skeletonLeftLeg3.To = points.LeftLeg[3];
+			visible.skeletonLeftLeg3.Color = skeletonColor;
+			visible.skeletonLeftLeg3.Thickness = skeletonThickness;
+			visible.skeletonLeftLeg3.Transparency = options.skeletonColor[2];
+		else
+			visible.skeletonLeftLeg3.Visible = false;
+		end
+	else
+		visible.skeletonLeftLeg1.Visible = false;
+		visible.skeletonLeftLeg2.Visible = false;
+		visible.skeletonLeftLeg3.Visible = false;
+	end
+	
+	-- RIGHT LEG (3 segments)
+	if points.RightLeg and points.Torso and points.Torso[2] then
+		if points.RightLeg[1] then
+			visible.skeletonRightLeg1.From = points.Torso[2];
+			visible.skeletonRightLeg1.To = points.RightLeg[1];
+			visible.skeletonRightLeg1.Color = skeletonColor;
+			visible.skeletonRightLeg1.Thickness = skeletonThickness;
+			visible.skeletonRightLeg1.Transparency = options.skeletonColor[2];
+		else
+			visible.skeletonRightLeg1.Visible = false;
+		end
+		
+		if points.RightLeg[1] and points.RightLeg[2] then
+			visible.skeletonRightLeg2.From = points.RightLeg[1];
+			visible.skeletonRightLeg2.To = points.RightLeg[2];
+			visible.skeletonRightLeg2.Color = skeletonColor;
+			visible.skeletonRightLeg2.Thickness = skeletonThickness;
+			visible.skeletonRightLeg2.Transparency = options.skeletonColor[2];
+		else
+			visible.skeletonRightLeg2.Visible = false;
+		end
+		
+		if points.RightLeg[2] and points.RightLeg[3] then
+			visible.skeletonRightLeg3.From = points.RightLeg[2];
+			visible.skeletonRightLeg3.To = points.RightLeg[3];
+			visible.skeletonRightLeg3.Color = skeletonColor;
+			visible.skeletonRightLeg3.Thickness = skeletonThickness;
+			visible.skeletonRightLeg3.Transparency = options.skeletonColor[2];
+		else
+			visible.skeletonRightLeg3.Visible = false;
+		end
+	else
+		visible.skeletonRightLeg1.Visible = false;
+		visible.skeletonRightLeg2.Visible = false;
+		visible.skeletonRightLeg3.Visible = false;
 	end
 end
 
@@ -1075,6 +1205,7 @@ function EspInterface.Load()
 		for _, object in pairs(EspInterface._objectCache) do
 			-- Update ESP object (index 1)
 			if object[1] and object[1].Update then
+				print(object)
 				object[1]:Update(deltaTime);
 				object[1]:Render(deltaTime);
 			end
