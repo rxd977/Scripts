@@ -1,47 +1,57 @@
+
 if getgenv().hasExecuted then getgenv().onExecuted() return end
 
 getgenv().hasExecuted = true
 
 -- Services:
 
-local replicatedStorage = game:GetService("ReplicatedStorage")
-local userInputService = game:GetService("UserInputService")
-local runService = game:GetService("RunService")
-local httpService = game:GetService("HttpService")
-local guiService = game:GetService("GuiService")
-local players = game:GetService("Players")
-local insertService = game:GetService("InsertService")
-local marketplaceService = game:GetService("MarketplaceService")
-local teleportService = game:GetService("TeleportService")
-local coreGui = gethui and gethui() or game:GetService("CoreGui")
+local GamepadService = game:GetService("GamepadService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
+local GuiService = game:GetService("GuiService")
+local Players = game:GetService("Players")
+local InsertService = game:GetService("InsertService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local TeleportService = game:GetService("TeleportService")
+local CoreGui = gethui and gethui() or game:GetService("CoreGui")
 
 -- Modules:
 
-local orUtils = require(replicatedStorage.Utils.ORUtils)
-local difficulties = require(replicatedStorage.Info.Difficulties)
-local mainUIController = require(players.LocalPlayer.PlayerGui.MainUI.MainUIController)
-local practiceController = require(players.LocalPlayer.PlayerGui.MainUI.MainUIController.PracticeController)
+local OrUtils = require(ReplicatedStorage.Utils.ORUtils)
+local Difficulties = require(ReplicatedStorage.Info.Difficulties)
+local MainUIController = require(Players.LocalPlayer.PlayerGui.MainUI.MainUIController)
+local PracticeController = require(Players.LocalPlayer.PlayerGui.MainUI.MainUIController.PracticeController)
 
--- Variables: 
+-- Variables:
 
-local DEFAULT_GRAVITY = workspace.Gravity
-local GAME_Y = 222.69964599609375
-local PRACTICE_Y = 252.12367248535156
+local DefaultGravity = workspace.Gravity
+local GameY = 222.69964599609375
+local PracticeY = 252.12367248535156
 
-local reGui = loadstring(game:HttpGet('https://raw.githubusercontent.com/depthso/Dear-ReGui/refs/heads/main/ReGui.lua'))()
+local Library = loadstring(game:HttpGetAsync("https://github.com/ActualMasterOogway/Fluent-Renewed/releases/latest/download/Fluent.luau"))()
+local SaveManager = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/ActualMasterOogway/Fluent-Renewed/master/Addons/SaveManager.luau"))()
+local InterfaceManager = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/ActualMasterOogway/Fluent-Renewed/master/Addons/InterfaceManager.luau"))()
 
-local localPlayer = players.LocalPlayer
-local playerGui = localPlayer.PlayerGui
-local currentCamera = workspace.CurrentCamera
-local guiInset = guiService:GetGuiInset()
-local placeId = game.PlaceId
-local jobId = game.JobId
-local placeName = marketplaceService:GetProductInfo(placeId).Name
-local rng = Random.new()
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer.PlayerGui
+local CurrentCamera = workspace.CurrentCamera
+local GuiInset = GuiService:GetGuiInset()
+local PlaceId = game.PlaceId
+local JobId = game.JobId
+local PlaceName = MarketplaceService:GetProductInfo(PlaceId).Name
+local Rng = Random.new()
 
-local PracticeUI = playerGui.MainUI.PracticeUI
+local PracticeUI = PlayerGui.MainUI.PracticeUI
 
-local cursors = {
+local NO_UPVALUES = function(Function)
+    return function(...)
+        return Function(...)
+    end
+end
+
+local Cursors = {
 	arrowFarCursor = {
 		icon = "rbxasset://textures/Cursors/KeyboardMouse/ArrowFarCursor.png",
 		size = UDim2.fromOffset(64, 64),
@@ -54,15 +64,15 @@ local cursors = {
 	},
 }
 
-local util = {
+local Util = {
 
 }
 
-local tas = {
+local Tas = {
 	animationController = {
 		_disabled = false,
 		_animationQueue = {},
-		_pose = nil, 
+		_pose = nil,
 		_currentAnimationSpeed = 0.1,
 		_dead = false,
 		_originalWalkSpeed = nil,
@@ -70,8 +80,8 @@ local tas = {
 	},
 
 	cameraController = {
-		_zoomControllers = {},	
-		_cameraCFrame = currentCamera.CFrame,
+		_zoomControllers = {},
+		_cameraCFrame = CurrentCamera.CFrame,
 	},
 
 	inputController = {
@@ -99,7 +109,7 @@ local tas = {
 	},
 }
 
-local obbyRoyale = {
+local ObbyRoyale = {
 	autoPlayController = {
 		_isAutoPlayEnabled = false,
 		_isAutoPlaying = false,
@@ -126,229 +136,227 @@ local obbyRoyale = {
 	},
 }
 
-local interface = {
+local Interface = {
 	_window = nil,
 	_tabs = {},
-	_regions = {},
-	_createPopup = Instance.new("BindableEvent"),
 }
 
 -- Methods:
 
-do -- util:
-	function util:getHumanoid()
-		local character = localPlayer.Character 
-		if not character then return end 
+do -- Util:
+	function Util:getHumanoid()
+		local Character = LocalPlayer.Character
+		if not Character then return end
 
-		return character:FindFirstChildOfClass("Humanoid")
+		return Character:FindFirstChildOfClass("Humanoid")
 	end
 
-	function util:getRootPart()
-		local character = localPlayer.Character 
-		if not character then return end 
+	function Util:getRootPart()
+		local Character = LocalPlayer.Character
+		if not Character then return end
 
-		return character:FindFirstChild("HumanoidRootPart")
+		return Character:FindFirstChild("HumanoidRootPart")
 	end
 
-	function util:roundNumber(number, digits)
-		local multi = 10 ^ math.max(tonumber(digits) or 0, 0)
+	function Util:roundNumber(Number, Digits)
+		local Multi = 10 ^ math.max(tonumber(Digits) or 0, 0)
 
-		return math.floor(number * multi + 0.5) / multi
+		return math.floor(Number * Multi + 0.5) / Multi
 	end
 
-	function util:roundTable(tbl, digits)
-		local roundedTable = {}
+	function Util:roundTable(Tbl, Digits)
+		local RoundedTable = {}
 
-		for i, number in tbl do
-			roundedTable[i] = self:roundNumber(number, digits)
+		for I, Number in Tbl do
+			RoundedTable[I] = self:roundNumber(Number, Digits)
 		end
 
-		return roundedTable
+		return RoundedTable
 	end
 
-	function util:vector3ToTable(vector3)
-		return {vector3.X, vector3.Y, vector3.Z}
+	function Util:vector3ToTable(Vector3Value)
+		return {Vector3Value.X, Vector3Value.Y, Vector3Value.Z}
 	end
 
-	function util:tableToVector3(tbl)
-		return Vector3.new(table.unpack(tbl))
+	function Util:tableToVector3(Tbl)
+		return Vector3.new(table.unpack(Tbl))
 	end
 
-	function util:vector2ToTable(vector2)
-		return {vector2.X, vector2.Y}
+	function Util:vector2ToTable(Vector2Value)
+		return {Vector2Value.X, Vector2Value.Y}
 	end
 
-	function util:tableToVector2(tbl)
-		return Vector2.new(table.unpack(tbl))
+	function Util:tableToVector2(Tbl)
+		return Vector2.new(table.unpack(Tbl))
 	end
 
-	function util:cframeToTable(cframe)
-		return {cframe:GetComponents()}
+	function Util:cframeToTable(Cframe)
+		return {Cframe:GetComponents()}
 	end
 
-	function util:tableToCFrame(tbl)
-		return CFrame.new(table.unpack(tbl))
+	function Util:tableToCFrame(Tbl)
+		return CFrame.new(table.unpack(Tbl))
 	end
 end
 
-do -- tas:
+ do -- Tas:
 	do -- animationController:
-		function tas.animationController:stopAllAnimations()
-			local humanoid = util:getHumanoid()
-			if not humanoid then return end 
+		function Tas.animationController:stopAllAnimations()
+			local Humanoid = Util:getHumanoid()
+			if not Humanoid then return end
 
-			for _, animationTrack in humanoid:GetPlayingAnimationTracks() do 
-				animationTrack:Stop()
+			for _, AnimationTrack in Humanoid:GetPlayingAnimationTracks() do
+				AnimationTrack:Stop()
 			end
 		end
 
-		function tas.animationController:isDead()
+		function Tas.animationController:isDead()
 			return self._dead
 		end
 
-		function tas.animationController:getOriginalJumpPower()
+		function Tas.animationController:getOriginalJumpPower()
 			return self._originalJumpPower
 		end
 
-		function tas.animationController:getOriginalWalkSpeed()
+		function Tas.animationController:getOriginalWalkSpeed()
 			return self._originalWalkSpeed
 		end
 
-		function tas.animationController:setDisabled(state)
-			self._disabled = state
+		function Tas.animationController:setDisabled(State)
+			self._disabled = State
 		end
 
-		function tas.animationController:setPose(pose)
-			self._pose = pose
+		function Tas.animationController:setPose(Pose)
+			self._pose = Pose
 		end
 
-		function tas.animationController:getPose()
+		function Tas.animationController:getPose()
 			return self._pose
 		end
 
-		function tas.animationController:getAnimationQueue()
+		function Tas.animationController:getAnimationQueue()
 			return self._animationQueue
 		end
 
-		function tas.animationController:getAnimationSpeed()
+		function Tas.animationController:getAnimationSpeed()
 			return self._currentAnimationSpeed
 		end
 
-		function tas.animationController:reAnimate()
-			local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+		function Tas.animationController:reAnimate()
+			local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 
-			for _, obj in character:GetDescendants() do
-				if not obj:IsA("LocalScript") or obj.Name ~= "Animate" then continue end
+			for _, Obj in Character:GetDescendants() do
+				if not Obj:IsA("LocalScript") or Obj.Name ~= "Animate" then continue end
 
-				obj:Destroy()
-			end 
+				Obj:Destroy()
+			end
 
 			self:stopAllAnimations()
 
 			do -- Animate.lua
-				local Torso = character:WaitForChild("Torso")
+				local Torso = Character:WaitForChild("Torso")
 				local RightShoulder = Torso:WaitForChild("Right Shoulder")
 				local LeftShoulder = Torso:WaitForChild("Left Shoulder")
 				local RightHip = Torso:WaitForChild("Right Hip")
 				local LeftHip = Torso:WaitForChild("Left Hip")
-				local Humanoid = character:WaitForChild("Humanoid")
+				local Humanoid = Character:WaitForChild("Humanoid")
 
-				local currentAnim = ""
-				local currentAnimInstance = nil
-				local currentAnimTrack = nil
-				local currentAnimKeyframeHandler = nil
+				local CurrentAnim = ""
+				local CurrentAnimInstance = nil
+				local CurrentAnimTrack = nil
+				local CurrentAnimKeyframeHandler = nil
 
-				local animTable = {}
-				local animNames = { 
-					idle = 	{	
+				local AnimTable = {}
+				local AnimNames = {
+					idle = 	{
 						{ id = "http://www.roblox.com/asset/?id=180435571", weight = 8 },
 						{ id = "http://www.roblox.com/asset/?id=180435792", weight = 1 }
 					},
-					walk = 	{ 	
-						{ id = "http://www.roblox.com/asset/?id=180426354", weight = 10 } 
-					}, 
+					walk = 	{
+						{ id = "http://www.roblox.com/asset/?id=180426354", weight = 10 }
+					},
 					run = 	{
-						{ id = "run.xml", weight = 10 } 
-					}, 
+						{ id = "run.xml", weight = 10 }
+					},
 					jump = 	{
-						{ id = "http://www.roblox.com/asset/?id=125750702", weight = 12 } 
-					}, 
+						{ id = "http://www.roblox.com/asset/?id=125750702", weight = 12 }
+					},
 					fall = 	{
-						{ id = "http://www.roblox.com/asset/?id=180436148", weight = 9 } 
-					}, 
+						{ id = "http://www.roblox.com/asset/?id=180436148", weight = 9 }
+					},
 					climb = {
-						{ id = "http://www.roblox.com/asset/?id=180436334", weight = 10 } 
-					}, 
+						{ id = "http://www.roblox.com/asset/?id=180436334", weight = 10 }
+					},
 					sit = 	{
-						{ id = "http://www.roblox.com/asset/?id=178130996", weight = 10 } 
-					},	
+						{ id = "http://www.roblox.com/asset/?id=178130996", weight = 10 }
+					},
 					toolnone = {
-						{ id = "http://www.roblox.com/asset/?id=182393478", weight = 10 } 
+						{ id = "http://www.roblox.com/asset/?id=182393478", weight = 10 }
 					},
 					toolslash = {
-						{ id = "http://www.roblox.com/asset/?id=129967390", weight = 10 } 
-						--				{ id = "slash.xml", weight = 10 } 
+						{ id = "http://www.roblox.com/asset/?id=129967390", weight = 10 }
+						--				{ id = "slash.xml", weight = 10 }
 					},
 					toollunge = {
-						{ id = "http://www.roblox.com/asset/?id=129967478", weight = 10 } 
+						{ id = "http://www.roblox.com/asset/?id=129967478", weight = 10 }
 					},
 					wave = {
-						{ id = "http://www.roblox.com/asset/?id=128777973", weight = 10 } 
+						{ id = "http://www.roblox.com/asset/?id=128777973", weight = 10 }
 					},
 					point = {
-						{ id = "http://www.roblox.com/asset/?id=128853357", weight = 10 } 
+						{ id = "http://www.roblox.com/asset/?id=128853357", weight = 10 }
 					},
 					dance1 = {
-						{ id = "http://www.roblox.com/asset/?id=182435998", weight = 10 }, 
-						{ id = "http://www.roblox.com/asset/?id=182491037", weight = 10 }, 
-						{ id = "http://www.roblox.com/asset/?id=182491065", weight = 10 } 
+						{ id = "http://www.roblox.com/asset/?id=182435998", weight = 10 },
+						{ id = "http://www.roblox.com/asset/?id=182491037", weight = 10 },
+						{ id = "http://www.roblox.com/asset/?id=182491065", weight = 10 }
 					},
 					dance2 = {
-						{ id = "http://www.roblox.com/asset/?id=182436842", weight = 10 }, 
-						{ id = "http://www.roblox.com/asset/?id=182491248", weight = 10 }, 
-						{ id = "http://www.roblox.com/asset/?id=182491277", weight = 10 } 
+						{ id = "http://www.roblox.com/asset/?id=182436842", weight = 10 },
+						{ id = "http://www.roblox.com/asset/?id=182491248", weight = 10 },
+						{ id = "http://www.roblox.com/asset/?id=182491277", weight = 10 }
 					},
 					dance3 = {
-						{ id = "http://www.roblox.com/asset/?id=182436935", weight = 10 }, 
-						{ id = "http://www.roblox.com/asset/?id=182491368", weight = 10 }, 
-						{ id = "http://www.roblox.com/asset/?id=182491423", weight = 10 } 
+						{ id = "http://www.roblox.com/asset/?id=182436935", weight = 10 },
+						{ id = "http://www.roblox.com/asset/?id=182491368", weight = 10 },
+						{ id = "http://www.roblox.com/asset/?id=182491423", weight = 10 }
 					},
 					laugh = {
-						{ id = "http://www.roblox.com/asset/?id=129423131", weight = 10 } 
+						{ id = "http://www.roblox.com/asset/?id=129423131", weight = 10 }
 					},
 					cheer = {
-						{ id = "http://www.roblox.com/asset/?id=129423030", weight = 10 } 
+						{ id = "http://www.roblox.com/asset/?id=129423030", weight = 10 }
 					},
 				}
-				local dances = {"dance1", "dance2", "dance3"}
+				local Dances = {"dance1", "dance2", "dance3"}
 
 				-- Existance in this list signifies that it is an emote, the value indicates if it is a looping emote
-				local emoteNames = { wave = false, point = false, dance1 = true, dance2 = true, dance3 = true, laugh = false, cheer = false}
+				local EmoteNames = { wave = false, point = false, dance1 = true, dance2 = true, dance3 = true, laugh = false, cheer = false}
 
-				function configureAnimationSet(name, fileList)
-					if (animTable[name] ~= nil) then
-						for _, connection in pairs(animTable[name].connections) do
-							connection:disconnect()
+				function configureAnimationSet(Name, FileList)
+					if (AnimTable[Name] ~= nil) then
+						for _, Connection in pairs(AnimTable[Name].connections) do
+							Connection:disconnect()
 						end
 					end
-					animTable[name] = {}
-					animTable[name].count = 0
-					animTable[name].totalWeight = 0	
-					animTable[name].connections = {}
+					AnimTable[Name] = {}
+					AnimTable[Name].count = 0
+					AnimTable[Name].totalWeight = 0
+					AnimTable[Name].connections = {}
 
 					-- check for config values
 
 					-- fallback to defaults
-					if (animTable[name].count <= 0) then
-						for idx, anim in pairs(fileList) do
-							animTable[name][idx] = {}
-							animTable[name][idx].anim = Instance.new("Animation")
-							animTable[name][idx].anim.Name = name
-							animTable[name][idx].anim.AnimationId = anim.id
-							animTable[name][idx].weight = anim.weight
-							animTable[name].count = animTable[name].count + 1
-							animTable[name].totalWeight = animTable[name].totalWeight + anim.weight
-							--			print(name .. " [" .. idx .. "] " .. anim.id .. " (" .. anim.weight .. ")")
+					if (AnimTable[Name].count <= 0) then
+						for Idx, Anim in pairs(FileList) do
+							AnimTable[Name][Idx] = {}
+							AnimTable[Name][Idx].anim = Instance.new("Animation")
+							AnimTable[Name][Idx].anim.Name = Name
+							AnimTable[Name][Idx].anim.AnimationId = Anim.id
+							AnimTable[Name][Idx].weight = Anim.weight
+							AnimTable[Name].count = AnimTable[Name].count + 1
+							AnimTable[Name].totalWeight = AnimTable[Name].totalWeight + Anim.weight
+							--			print(Name .. " [" .. Idx .. "] " .. Anim.id .. " (" .. Anim.weight .. ")")
 						end
 					end
 				end
@@ -357,127 +365,127 @@ do -- tas:
 
 				-- Clear any existing animation tracks
 				-- Fixes issue with characters that are moved in and out of the Workspace accumulating tracks
-				local animator = Humanoid and Humanoid:FindFirstChildOfClass("Animator") or nil
-				if animator then
-					local animTracks = animator:GetPlayingAnimationTracks()
-					for i,track in ipairs(animTracks) do
-						track:Stop(0)
-						track:Destroy()
+				local Animator = Humanoid and Humanoid:FindFirstChildOfClass("Animator") or nil
+				if Animator then
+					local AnimTracks = Animator:GetPlayingAnimationTracks()
+					for I,Track in ipairs(AnimTracks) do
+						Track:Stop(0)
+						Track:Destroy()
 					end
 				end
 
 
-				for name, fileList in pairs(animNames) do 
-					configureAnimationSet(name, fileList)
-				end	
+				for Name, FileList in pairs(AnimNames) do
+					configureAnimationSet(Name, FileList)
+				end
 
 				-- ANIMATION
 
 				-- declarations
-				local toolAnim = "None"
-				local toolAnimTime = 0
+				local ToolAnim = "None"
+				local ToolAnimTime = 0
 
-				local jumpAnimTime = 0
-				local jumpAnimDuration = 0.3
+				local JumpAnimTime = 0
+				local JumpAnimDuration = 0.3
 
-				local toolTransitionTime = 0.1
-				local fallTransitionTime = 0.3
-				local jumpMaxLimbVelocity = 0.75
+				local ToolTransitionTime = 0.1
+				local FallTransitionTime = 0.3
+				local JumpMaxLimbVelocity = 0.75
 
 				-- functions
 
 				function stopAllAnimations()
-					local oldAnim = currentAnim
+					local OldAnim = CurrentAnim
 
 					-- return to idle if finishing an emote
-					if (emoteNames[oldAnim] ~= nil and emoteNames[oldAnim] == false) then
-						oldAnim = "idle"
+					if (EmoteNames[OldAnim] ~= nil and EmoteNames[OldAnim] == false) then
+						OldAnim = "idle"
 					end
 
-					currentAnim = ""
-					currentAnimInstance = nil
-					if (currentAnimKeyframeHandler ~= nil) then
-						currentAnimKeyframeHandler:disconnect()
+					CurrentAnim = ""
+					CurrentAnimInstance = nil
+					if (CurrentAnimKeyframeHandler ~= nil) then
+						CurrentAnimKeyframeHandler:disconnect()
 					end
 
-					if (currentAnimTrack ~= nil) then
-						currentAnimTrack:Stop()
-						currentAnimTrack:Destroy()
-						currentAnimTrack = nil
+					if (CurrentAnimTrack ~= nil) then
+						CurrentAnimTrack:Stop()
+						CurrentAnimTrack:Destroy()
+						CurrentAnimTrack = nil
 					end
-					return oldAnim
+					return OldAnim
 				end
 
-				function tas.animationController:setAnimationSpeed(speed)
-					if speed ~= self._currentAnimationSpeed then
-						self._currentAnimationSpeed = speed
-						currentAnimTrack:AdjustSpeed(self._currentAnimationSpeed)
+				function Tas.animationController:setAnimationSpeed(Speed)
+					if Speed ~= self._currentAnimationSpeed then
+						self._currentAnimationSpeed = Speed
+						CurrentAnimTrack:AdjustSpeed(self._currentAnimationSpeed)
 					end
 				end
 
-				function keyFrameReachedFunc(frameName)
-					if (frameName == "End") then
+				function keyFrameReachedFunc(FrameName)
+					if (FrameName == "End") then
 
-						local repeatAnim = currentAnim
+						local RepeatAnim = CurrentAnim
 						-- return to idle if finishing an emote
-						if (emoteNames[repeatAnim] ~= nil and emoteNames[repeatAnim] == false) then
-							repeatAnim = "idle"
+						if (EmoteNames[RepeatAnim] ~= nil and EmoteNames[RepeatAnim] == false) then
+							RepeatAnim = "idle"
 						end
 
-						local animSpeed = self._currentAnimationSpeed
-						self:playAnimation(repeatAnim, 0.0)
-						self:setAnimationSpeed(animSpeed)
+						local AnimSpeed = self._currentAnimationSpeed
+						self:playAnimation(RepeatAnim, 0.0)
+						self:setAnimationSpeed(AnimSpeed)
 					end
 				end
 
-				function tas.animationController:playAnimation(animName, transitionTime, bypassAnimateDisabled)
+				function Tas.animationController:playAnimation(AnimName, TransitionTime, BypassAnimateDisabled)
 					pcall(function()
-						if self._disabled and not bypassAnimateDisabled then
+						if self._disabled and not BypassAnimateDisabled then
 							return
 						end
 
-						if tas.core:isRecording() then
-							table.insert(self._animationQueue, { animName, transitionTime })
+						if Tas.core:isRecording() then
+							table.insert(self._animationQueue, { AnimName, TransitionTime })
 						end
 
-						local humanoid = util:getHumanoid()
-						if not humanoid then return end
+						local Humanoid = Util:getHumanoid()
+						if not Humanoid then return end
 
-						local roll = math.random(1, animTable[animName].totalWeight)
-						local origRoll = roll
-						local idx = 1
+						local Roll = math.random(1, AnimTable[AnimName].totalWeight)
+						local OrigRoll = Roll
+						local Idx = 1
 
-						while (roll > animTable[animName][idx].weight) do
-							roll = roll - animTable[animName][idx].weight
-							idx = idx + 1
+						while (Roll > AnimTable[AnimName][Idx].weight) do
+							Roll = Roll - AnimTable[AnimName][Idx].weight
+							Idx = Idx + 1
 						end
 
-						--		print(animName .. " " .. idx .. " [" .. origRoll .. "]")
-						local anim = animTable[animName][idx].anim
+						--		print(AnimName .. " " .. Idx .. " [" .. OrigRoll .. "]")
+						local Anim = AnimTable[AnimName][Idx].anim
 
-						-- switch animation		
-						if (anim ~= currentAnimInstance) then
-							if (currentAnimTrack ~= nil) then
-								currentAnimTrack:Stop(transitionTime)
-								currentAnimTrack:Destroy()
+						-- switch animation
+						if (Anim ~= CurrentAnimInstance) then
+							if (CurrentAnimTrack ~= nil) then
+								CurrentAnimTrack:Stop(TransitionTime)
+								CurrentAnimTrack:Destroy()
 							end
 
 							self._currentAnimationSpeed = 1.0
 
 							-- load it to the humanoid, get AnimationTrack
-							currentAnimTrack = humanoid:LoadAnimation(anim)
-							currentAnimTrack.Priority = Enum.AnimationPriority.Core
+							CurrentAnimTrack = Humanoid:LoadAnimation(Anim)
+							CurrentAnimTrack.Priority = Enum.AnimationPriority.Core
 
 							-- play the animation
-							currentAnimTrack:Play(transitionTime)
-							currentAnim = animName
-							currentAnimInstance = anim
+							CurrentAnimTrack:Play(TransitionTime)
+							CurrentAnim = AnimName
+							CurrentAnimInstance = Anim
 
 							-- set up keyframe name triggers
-							if (currentAnimKeyframeHandler ~= nil) then
-								currentAnimKeyframeHandler:disconnect()
+							if (CurrentAnimKeyframeHandler ~= nil) then
+								CurrentAnimKeyframeHandler:disconnect()
 							end
-							currentAnimKeyframeHandler = currentAnimTrack.KeyframeReached:connect(keyFrameReachedFunc)
+							CurrentAnimKeyframeHandler = CurrentAnimTrack.KeyframeReached:connect(keyFrameReachedFunc)
 						end
 					end)
 				end
@@ -485,149 +493,148 @@ do -- tas:
 				-------------------------------------------------------------------------------------------
 				-------------------------------------------------------------------------------------------
 
-				local toolAnimName = ""
-				local toolAnimTrack = nil
-				local toolAnimInstance = nil
-				local currentToolAnimKeyframeHandler = nil
+				local ToolAnimName = ""
+				local ToolAnimTrack = nil
+				local ToolAnimInstance = nil
+				local CurrentToolAnimKeyframeHandler = nil
 
-				function toolKeyFrameReachedFunc(frameName)
-					if (frameName == "End") then
-						--		print("Keyframe : ".. frameName)	
-						playToolAnimation(toolAnimName, 0.0, Humanoid)
+				function toolKeyFrameReachedFunc(FrameName)
+					if (FrameName == "End") then
+						--		print("Keyframe : ".. FrameName)
+						playToolAnimation(ToolAnimName, 0.0, Humanoid)
 					end
 				end
 
+				function playToolAnimation(AnimName, TransitionTime, Humanoid, Priority)
 
-				function playToolAnimation(animName, transitionTime, humanoid, priority)	 
-
-					local roll = math.random(1, animTable[animName].totalWeight) 
-					local origRoll = roll
-					local idx = 1
-					while (roll > animTable[animName][idx].weight) do
-						roll = roll - animTable[animName][idx].weight
-						idx = idx + 1
+					local Roll = math.random(1, AnimTable[AnimName].totalWeight)
+					local OrigRoll = Roll
+					local Idx = 1
+					while (Roll > AnimTable[AnimName][Idx].weight) do
+						Roll = Roll - AnimTable[AnimName][Idx].weight
+						Idx = Idx + 1
 					end
-					--		print(animName .. " * " .. idx .. " [" .. origRoll .. "]")
-					local anim = animTable[animName][idx].anim
+					--		print(AnimName .. " * " .. Idx .. " [" .. OrigRoll .. "]")
+					local Anim = AnimTable[AnimName][Idx].anim
 
-					if (toolAnimInstance ~= anim) then
+					if (ToolAnimInstance ~= Anim) then
 
-						if (toolAnimTrack ~= nil) then
-							toolAnimTrack:Stop()
-							toolAnimTrack:Destroy()
-							transitionTime = 0
+						if (ToolAnimTrack ~= nil) then
+							ToolAnimTrack:Stop()
+							ToolAnimTrack:Destroy()
+							TransitionTime = 0
 						end
 
 						-- load it to the humanoid, get AnimationTrack
-						toolAnimTrack = humanoid:LoadAnimation(anim)
-						if priority then
-							toolAnimTrack.Priority = priority
+						ToolAnimTrack = Humanoid:LoadAnimation(Anim)
+						if Priority then
+							ToolAnimTrack.Priority = Priority
 						end
 
 						-- play the animation
-						toolAnimTrack:Play(transitionTime)
-						toolAnimName = animName
-						toolAnimInstance = anim
+						ToolAnimTrack:Play(TransitionTime)
+						ToolAnimName = AnimName
+						ToolAnimInstance = Anim
 
-						currentToolAnimKeyframeHandler = toolAnimTrack.KeyframeReached:connect(toolKeyFrameReachedFunc)
+						CurrentToolAnimKeyframeHandler = ToolAnimTrack.KeyframeReached:connect(toolKeyFrameReachedFunc)
 					end
 				end
 
 				function stopToolAnimations()
-					local oldAnim = toolAnimName
+					local OldAnim = ToolAnimName
 
-					if (currentToolAnimKeyframeHandler ~= nil) then
-						currentToolAnimKeyframeHandler:disconnect()
+					if (CurrentToolAnimKeyframeHandler ~= nil) then
+						CurrentToolAnimKeyframeHandler:disconnect()
 					end
 
-					toolAnimName = ""
-					toolAnimInstance = nil
-					if (toolAnimTrack ~= nil) then
-						toolAnimTrack:Stop()
-						toolAnimTrack:Destroy()
-						toolAnimTrack = nil
+					ToolAnimName = ""
+					ToolAnimInstance = nil
+					if (ToolAnimTrack ~= nil) then
+						ToolAnimTrack:Stop()
+						ToolAnimTrack:Destroy()
+						ToolAnimTrack = nil
 					end
 
 
-					return oldAnim
+					return OldAnim
 				end
 
 				-------------------------------------------------------------------------------------------
-				------------------------------------------------------------------------------------------- 
+				-------------------------------------------------------------------------------------------
 
-				function tas.animationController:onRunning(speed) 
-					if speed > 0.01 then
+				function Tas.animationController:onRunning(Speed)
+					if Speed > 0.01 then
 						self:playAnimation("walk", 0.1)
-						if currentAnimInstance and currentAnimInstance.AnimationId == "http://www.roblox.com/asset/?id=180426354" then
-							self:setAnimationSpeed(speed / 14.5)
+						if CurrentAnimInstance and CurrentAnimInstance.AnimationId == "http://www.roblox.com/asset/?id=180426354" then
+							self:setAnimationSpeed(Speed / 14.5)
 						end
 						self._pose = "Running"
 					else
-						if emoteNames[currentAnim] == nil then
+						if EmoteNames[CurrentAnim] == nil then
 							self:playAnimation("idle", 0.1)
 							self._pose = "Standing"
 						end
 					end
 				end
 
-				function tas.animationController:onDied()
+				function Tas.animationController:onDied()
 					self._pose = "Dead"
 				end
 
-				function tas.animationController:onJumping()
+				function Tas.animationController:onJumping()
 					self:playAnimation("jump", 0.1)
-					jumpAnimTime = jumpAnimDuration
+					JumpAnimTime = JumpAnimDuration
 					self._pose = "Jumping"
 				end
 
-				function tas.animationController:onClimbing(speed) 
+				function Tas.animationController:onClimbing(Speed)
 					self:playAnimation("climb", 0.1)
-					self:setAnimationSpeed(speed / 12.0)
+					self:setAnimationSpeed(Speed / 12.0)
 					self._pose = "Climbing"
 				end
 
-				function tas.animationController:onGettingUp()
+				function Tas.animationController:onGettingUp()
 					self._pose = "GettingUp"
 				end
 
-				function tas.animationController:onFreeFall()
-					if (jumpAnimTime <= 0) then
-						self:playAnimation("fall", fallTransitionTime)
+				function Tas.animationController:onFreeFall()
+					if (JumpAnimTime <= 0) then
+						self:playAnimation("fall", FallTransitionTime)
 					end
 					self._pose = "FreeFall"
 				end
 
-				function tas.animationController:onFallingDown()
+				function Tas.animationController:onFallingDown()
 					self._pose = "FallingDown"
 				end
 
-				function tas.animationController:onSeated()
+				function Tas.animationController:onSeated()
 					self._pose = "Seated"
 				end
 
-				function tas.animationController:onPlatformStanding()
+				function Tas.animationController:onPlatformStanding()
 					self._pose = "PlatformStanding"
 				end
 
-				function tas.animationController:onSwimming(speed)
-					if speed > 0 then
+				function Tas.animationController:onSwimming(Speed)
+					if Speed > 0 then
 						self._pose = "Running"
 					else
 						self._pose = "Standing"
 					end
 				end
 
-				function getTool()	
-					for _, kid in ipairs(character:GetChildren()) do
-						if kid.className == "Tool" then return kid end
+				function getTool()
+					for _, Kid in ipairs(Character:GetChildren()) do
+						if Kid.className == "Tool" then return Kid end
 					end
 					return nil
 				end
 
-				function getToolAnim(tool)
-					for _, c in ipairs(tool:GetChildren()) do
-						if c.Name == "toolanim" and c.className == "StringValue" then
-							return c
+				function getToolAnim(Tool)
+					for _, C in ipairs(Tool:GetChildren()) do
+						if C.Name == "toolanim" and C.className == "StringValue" then
+							return C
 						end
 					end
 					return nil
@@ -635,17 +642,17 @@ do -- tas:
 
 				function animateTool()
 
-					if (toolAnim == "None") then
-						playToolAnimation("toolnone", toolTransitionTime, Humanoid, Enum.AnimationPriority.Idle)
+					if (ToolAnim == "None") then
+						playToolAnimation("toolnone", ToolTransitionTime, Humanoid, Enum.AnimationPriority.Idle)
 						return
 					end
 
-					if (toolAnim == "Slash") then
+					if (ToolAnim == "Slash") then
 						playToolAnimation("toolslash", 0, Humanoid, Enum.AnimationPriority.Action)
 						return
 					end
 
-					if (toolAnim == "Lunge") then
+					if (ToolAnim == "Lunge") then
 						playToolAnimation("toollunge", 0, Humanoid, Enum.AnimationPriority.Action)
 						return
 					end
@@ -660,27 +667,27 @@ do -- tas:
 					LeftHip:SetDesiredAngle(-3.14 /2)
 				end
 
-				local lastTick = 0
+				local LastTick = 0
 
-				function move(time)
+				function move(Time)
 					if self._disabled then
 						return
 					end
 
-					local amplitude = 1
-					local frequency = 1
-					local deltaTime = time - lastTick
-					lastTick = time
+					local Amplitude = 1
+					local Frequency = 1
+					local DeltaTime = Time - LastTick
+					LastTick = Time
 
-					local climbFudge = 0
-					local setAngles = false
+					local ClimbFudge = 0
+					local SetAngles = false
 
-					if (jumpAnimTime > 0) then
-						jumpAnimTime = jumpAnimTime - deltaTime
+					if (JumpAnimTime > 0) then
+						JumpAnimTime = JumpAnimTime - DeltaTime
 					end
 
-					if (self._pose == "FreeFall" and jumpAnimTime <= 0) then
-						self:playAnimation("fall", fallTransitionTime)
+					if (self._pose == "FreeFall" and JumpAnimTime <= 0) then
+						self:playAnimation("fall", FallTransitionTime)
 					elseif (self._pose == "Seated") then
 						self:playAnimation("sit", 0.5)
 						return
@@ -689,44 +696,44 @@ do -- tas:
 					elseif (self._pose == "Dead" or self._pose == "GettingUp" or self._pose == "FallingDown" or self._pose == "Seated" or self._pose == "PlatformStanding") then
 						--		print("Wha " .. pose)
 						stopAllAnimations()
-						amplitude = 0.1
-						frequency = 1
-						setAngles = true
+						Amplitude = 0.1
+						Frequency = 1
+						SetAngles = true
 					end
 
-					if (setAngles) then
-						local desiredAngle = amplitude * math.sin(time * frequency)
+					if (SetAngles) then
+						local DesiredAngle = Amplitude * math.sin(Time * Frequency)
 
-						RightShoulder:SetDesiredAngle(desiredAngle + climbFudge)
-						LeftShoulder:SetDesiredAngle(desiredAngle - climbFudge)
-						RightHip:SetDesiredAngle(-desiredAngle)
-						LeftHip:SetDesiredAngle(-desiredAngle)
+						RightShoulder:SetDesiredAngle(DesiredAngle + ClimbFudge)
+						LeftShoulder:SetDesiredAngle(DesiredAngle - ClimbFudge)
+						RightHip:SetDesiredAngle(-DesiredAngle)
+						LeftHip:SetDesiredAngle(-DesiredAngle)
 					end
 
 					-- Tool Animation handling
-					local tool = getTool()
-					if tool and tool:FindFirstChild("Handle") then
+					local Tool = getTool()
+					if Tool and Tool:FindFirstChild("Handle") then
 
-						local animStringValueObject = getToolAnim(tool)
+						local AnimStringValueObject = getToolAnim(Tool)
 
-						if animStringValueObject then
-							toolAnim = animStringValueObject.Value
+						if AnimStringValueObject then
+							ToolAnim = AnimStringValueObject.Value
 							-- message recieved, delete StringValue
-							animStringValueObject.Parent = nil
-							toolAnimTime = time + .3
+							AnimStringValueObject.Parent = nil
+							ToolAnimTime = Time + .3
 						end
 
-						if time > toolAnimTime then
-							toolAnimTime = 0
-							toolAnim = "None"
+						if Time > ToolAnimTime then
+							ToolAnimTime = 0
+							ToolAnim = "None"
 						end
 
-						animateTool()		
+						animateTool()
 					else
 						stopToolAnimations()
-						toolAnim = "None"
-						toolAnimInstance = nil
-						toolAnimTime = 0
+						ToolAnim = "None"
+						ToolAnimInstance = nil
+						ToolAnimTime = 0
 					end
 				end
 
@@ -802,18 +809,18 @@ do -- tas:
 					self:onSwimming(...)
 				end)
 
-				game:GetService("Players").LocalPlayer.Chatted:connect(function(msg)
-					local emote = ""
-					if msg == "/e dance" then
-						emote = dances[math.random(1, #dances)]
-					elseif (string.sub(msg, 1, 3) == "/e ") then
-						emote = string.sub(msg, 4)
-					elseif (string.sub(msg, 1, 7) == "/emote ") then
-						emote = string.sub(msg, 8)
+				game:GetService("Players").LocalPlayer.Chatted:connect(function(Msg)
+					local Emote = ""
+					if Msg == "/e dance" then
+						Emote = Dances[math.random(1, #Dances)]
+					elseif (string.sub(Msg, 1, 3) == "/e ") then
+						Emote = string.sub(Msg, 4)
+					elseif (string.sub(Msg, 1, 7) == "/emote ") then
+						Emote = string.sub(Msg, 8)
 					end
 
-					if (self._pose == "Standing" and emoteNames[emote] ~= nil) then
-						self:playAnimation(emote, 0.1)
+					if (self._pose == "Standing" and EmoteNames[Emote] ~= nil) then
+						self:playAnimation(Emote, 0.1)
 					end
 
 				end)
@@ -822,201 +829,212 @@ do -- tas:
 				self._pose = "Standing"
 
 				spawn(function()
-					while character.Parent ~= nil do
-						local _, time = wait(0.1)
-						move(time)
+					while Character.Parent ~= nil do
+						local _, Time = wait(0.1)
+						move(Time)
 					end
 				end)
 			end
 		end
 
-		function tas.animationController:characterAdded(character)
-			local humanoid = character:WaitForChild("Humanoid")
+		function Tas.animationController:characterAdded(Character)
+			local Humanoid = Character:WaitForChild("Humanoid")
 
-			self._originalJumpPower = humanoid.JumpPower
-			self._originalWalkSpeed = humanoid.WalkSpeed
+			self._originalJumpPower = Humanoid.JumpPower
+			self._originalWalkSpeed = Humanoid.WalkSpeed
 
 			self:reAnimate()
 
-			humanoid.Died:Connect(function()
+			Humanoid.Died:Connect(function()
 				self._dead = true
 			end)
 
 			self._dead = false
 		end
 
-		function tas.animationController:init()
-			if localPlayer.Character then self:characterAdded(localPlayer.Character) end 
+		function Tas.animationController:init()
+			if LocalPlayer.Character then self:characterAdded(LocalPlayer.Character) end
 
-			localPlayer.CharacterAdded:Connect(function(character) self:characterAdded(character) end)
+			LocalPlayer.CharacterAdded:Connect(function(Character) self:characterAdded(Character) end)
 		end
 	end
 
 	do  -- cameraController:
-		function tas.cameraController:setZoom(zoom)
-			for _, zoomController in self._zoomControllers do
+		function Tas.cameraController:setZoom(Zoom)
+			for _, ZoomController in self._zoomControllers do
 				pcall(function()
-					zoomController:SetCameraToSubjectDistance(zoom)
+					ZoomController:SetCameraToSubjectDistance(Zoom)
 				end)
 			end
 		end
 
-		function tas.cameraController:getZoom()
-			for _, zoomController in self._zoomControllers do
-				local zoom = zoomController:GetCameraToSubjectDistance()
+		function Tas.cameraController:getZoom()
+			for _, ZoomController in self._zoomControllers do
+				local Zoom = ZoomController:GetCameraToSubjectDistance()
 
-				if zoom and zoom ~= 12.5 then
-					return zoom
+				if Zoom and Zoom ~= 12.5 then
+					return Zoom
 				end
 			end
 
 			return 12.5
 		end
 
-		function tas.cameraController:setCFrame(cframe)
-			self._cameraCFrame = cframe
+		function Tas.cameraController:setCFrame(Cframe)
+			self._cameraCFrame = Cframe
 
-			currentCamera.CFrame = cframe
+			CurrentCamera.CFrame = Cframe
 		end
 
-		function tas.cameraController:init()
-			for _, obj in getgc(true) do
-				if typeof(obj) == "table" and rawget(obj, "FIRST_PERSON_DISTANCE_THRESHOLD") then
-					table.insert(self._zoomControllers, obj)
+		function Tas.cameraController:init()
+			for _, Obj in getgc(true) do
+				if typeof(Obj) == "table" and rawget(Obj, "FIRST_PERSON_DISTANCE_THRESHOLD") then
+					table.insert(self._zoomControllers, Obj)
 				end
 			end
 
-			currentCamera.Changed:Connect(function()
-				if not tas.core:isReplaying() or not tas.core:isUsingAllReplay() then return end
+			CurrentCamera.Changed:Connect(function()
+				if not Tas.core:isReplaying() or not Tas.core:isUsingAllReplay() then return end
 
-				currentCamera.CFrame = self._cameraCFrame
+				CurrentCamera.CFrame = self._cameraCFrame
 			end)
 		end
 	end
 
-	do -- inputController: 
-		function tas.inputController:createCursor()
-			local cursorHolder = Instance.new("ScreenGui")
-			cursorHolder.DisplayOrder = 999
-			cursorHolder.OnTopOfCoreBlur = true
-			cursorHolder.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-			cursorHolder.Parent = coreGui
+	do -- inputController:
+		function Tas.inputController:createCursor()
+			local CursorHolder = Instance.new("ScreenGui")
+			CursorHolder.DisplayOrder = 999
+			CursorHolder.OnTopOfCoreBlur = true
+			CursorHolder.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+			CursorHolder.Parent = CoreGui
 
-			self._resolution = cursorHolder.AbsoluteSize
+			self._resolution = CursorHolder.AbsoluteSize
 
-			self._cursorHolder = cursorHolder
+			self._cursorHolder = CursorHolder
 
-			local cursorFrame = Instance.new("ImageLabel")
-			cursorFrame.BackgroundTransparency = 1
-			cursorFrame.ZIndex = 999
-			cursorFrame.Parent = cursorHolder
+			local CursorFrame = Instance.new("ImageLabel")
+			CursorFrame.BackgroundTransparency = 1
+			CursorFrame.ZIndex = 999
+			CursorFrame.Parent = CursorHolder
 
-			self._cursorFrame = cursorFrame
+			self._cursorFrame = CursorFrame
 		end
 
-		function tas.inputController:setCursor(cursorName)
-			self._cursor = cursors[cursorName]
+		function Tas.inputController:setCursor(CursorName)
+			self._cursor = Cursors[CursorName]
 		end
 
-		function tas.inputController:getCursor()
+		function Tas.inputController:getCursor()
 			return self._cursor
 		end
 
-		function tas.inputController:getResolution()
+		function Tas.inputController:getResolution()
 			return self._resolution
 		end
 
-		function tas.inputController:disableControls()
+		function Tas.inputController:disableControls()
 			self._controls:Disable()
 		end
 
-		function tas.inputController:enableControls()
+		function Tas.inputController:enableControls()
 			self._controls:Enable()
 		end
 
-		function tas.inputController:getShiftLockState()
+		function Tas.inputController:getShiftLockState()
 			return self._shiftlockState
 		end
 
-		function tas.inputController:toggleShiftLock(state)
-			state = if state == nil then not self._shiftlockState else state
+		function Tas.inputController:toggleShiftLock(State)
+			State = if State == nil then not self._shiftlockState else State
 
-			if self._shiftlockState == state then return end 
+			if self._shiftlockState == State then return end
 
-			self._shiftlockState = state 
+			self._shiftlockState = State
 
-			if state then 
+			if State then
 				self:setCursor("mouseLockedCursor")
-			else 
+			else
 				self:setCursor("arrowFarCursor")
 			end
 
-			self._mouseLockController:DoMouseLockSwitch("MouseLockSwitchAction", Enum.UserInputState.Begin, game)
+			self.DoMouseLockSwitch(self._mouseLockController, "MouseLockSwitchAction", Enum.UserInputState.Begin, game)
 		end
 
-		function tas.inputController:init()
+		function Tas.inputController:init()
 			self:createCursor()
 
-			self:setCursor("arrowFarCursor")
+			UserInputService.MouseIconEnabled = false
 
-			userInputService.MouseIconEnabled = false
-			localPlayer:FindFirstChild("BoundKeys", true).Value = ""
-
-			for _, obj in getgc(true) do 
-				if typeof(obj) == "table" and rawget(obj, "activeMouseLockController") then 
-					self._mouseLockController = obj.activeMouseLockController
+			for _, Obj in getgc(true) do
+				if typeof(Obj) == "table" and rawget(Obj, "activeMouseLockController") then
+					self._mouseLockController = Obj.activeMouseLockController
 					break
 				end
 			end
 
-			for _, obj in getgc(true) do 
-				if type(obj) == "table" and rawget(obj, "controls") then 
-					self._controls = obj.controls
+            local Old; Old = hookfunction(self._mouseLockController.DoMouseLockSwitch, newcclosure(function(...) -- idk bro fuck GameProcessed
+                if not checkcaller() then return end
+                return Old(...)
+            end))
+            self.DoMouseLockSwitch = Old
+
+            self._shiftlockState = self._mouseLockController.isMouseLocked
+
+            if self._shiftlockState then 
+                self:setCursor("mouseLockedCursor")
+            else 
+                self:setCursor("arrowFarCursor")
+            end
+
+			for _, Obj in getgc(true) do
+				if type(Obj) == "table" and rawget(Obj, "controls") then
+					self._controls = Obj.controls
 					break
 				end
 			end
+            
+			UserInputService.InputBegan:Connect(function(Input, GameProcessed)
+                if Tas.core:isReplaying() then return end
 
-			userInputService.InputBegan:Connect(function(input, gameProcessed)
-				if gameProcessed or tas.core:isReplaying() then return end 
-
-				if input.KeyCode == Enum.KeyCode.LeftShift then 
+				if Input.KeyCode == Enum.KeyCode.LeftShift then
 					self:toggleShiftLock()
-				elseif input.KeyCode == tas.core:getFowardKeybind() then 
-					tas.core:freeze(true) 
+				elseif Input.KeyCode == Tas.core:getFowardKeybind() then
+					Tas.core:freeze(true)
 
-					if tas.core:getSeekDirection() == 0 then
-						tas.core:setSeekDirection(1)
+					if Tas.core:getSeekDirection() == 0 then
+						Tas.core:setSeekDirection(1)
 					end
-				elseif input.KeyCode == tas.core:getBackKeybind() then 
-					tas.core:freeze(true) 
+				elseif Input.KeyCode == Tas.core:getBackKeybind() then
+					Tas.core:freeze(true)
 
-					if tas.core:getSeekDirection() == 0 then
-						tas.core:setSeekDirection(-1)
+					if Tas.core:getSeekDirection() == 0 then
+						Tas.core:setSeekDirection(-1)
 					end
 				end
 			end)
 
-			userInputService.InputEnded:Connect(function(input, gameProcessed)
-				if gameProcessed or tas.core:isReplaying() then return end 
+			UserInputService.InputEnded:Connect(function(Input, GameProcessed)
+				if Tas.core:isReplaying() then return end
 
-				if input.KeyCode == tas.core:getFowardKeybind() then 
-					if tas.core:getSeekDirection() == 1 then
-						tas.core:setSeekDirection(0)
+				if Input.KeyCode == Tas.core:getFowardKeybind() then
+					if Tas.core:getSeekDirection() == 1 then
+						Tas.core:setSeekDirection(0)
 					end
-				elseif input.KeyCode == tas.core:getBackKeybind() then 
-					if tas.core:getSeekDirection() == -1 then 
-						tas.core:setSeekDirection(0)
+				elseif Input.KeyCode == Tas.core:getBackKeybind() then
+					if Tas.core:getSeekDirection() == -1 then
+						Tas.core:setSeekDirection(0)
 					end
 				end
-			end)       
+			end)
 
-			runService.RenderStepped:Connect(function()
-				if not tas.core:isFrozen() then return end 
+			RunService.RenderStepped:Connect(function()
+				if not Tas.core:isFrozen() then return end
 
-				local freezeFrame = tas.core:getFreezeFrame() + tas.core:getSeekDirection()
-				local recordingFrames = tas.core:getRecordingFrames() 
+				local FreezeFrame = Tas.core:getFreezeFrame() + Tas.core:getSeekDirection()
+				local RecordingFrames = Tas.core:getRecordingFrames()
 
-				tas.core:setFreezeFrame(freezeFrame < 1 and 1 or freezeFrame > #recordingFrames and #recordingFrames or freezeFrame)
+				Tas.core:setFreezeFrame(FreezeFrame < 1 and 1 or FreezeFrame > #RecordingFrames and #RecordingFrames or FreezeFrame)
 			end)
 
 			task.spawn(function()
@@ -1024,865 +1042,989 @@ do -- tas:
 					self._cursorFrame.Image = self._cursor.icon
 					self._cursorFrame.Size = self._cursor.size
 
-					local mousePosition = userInputService:GetMouseLocation()
+					local MousePosition = UserInputService:GetMouseLocation()
 
-					if userInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
+					if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
 						self._cursorFrame.Position = UDim2.fromOffset(
-							(self._resolution.X / 2) + self._cursor.offset.X - guiInset.X,
-							(self._resolution.Y / 2) + self._cursor.offset.Y - guiInset.Y - 18)
+							(self._resolution.X / 2) + self._cursor.offset.X - GuiInset.X,
+							(self._resolution.Y / 2) + self._cursor.offset.Y - GuiInset.Y - 18)
 					else
-						self._cursorFrame.Position = UDim2.fromOffset(mousePosition.X + self._cursor.offset.X - guiInset.X,
-							mousePosition.Y + self._cursor.offset.Y - guiInset.Y - 36)
+						self._cursorFrame.Position = UDim2.fromOffset(MousePosition.X + self._cursor.offset.X - GuiInset.X,
+							MousePosition.Y + self._cursor.offset.Y - GuiInset.Y - 36)
 					end
 
-					runService.RenderStepped:Wait()
+					RunService.RenderStepped:Wait()
 				end
 			end)
 		end
 	end
 
-	do -- core: 
-		function tas.core:setForwardKeybind(key)
-			self._goForwardKey = key
+	do -- core:
+		function Tas.core:setForwardKeybind(Key)
+			self._goForwardKey = Key
 		end
 
-		function tas.core:getFowardKeybind()
+		function Tas.core:getFowardKeybind()
 			return self._goForwardKey
 		end
 
-		function tas.core:setBackKeybind(key)
-			self._goBackKey = key
+		function Tas.core:setBackKeybind(Key)
+			self._goBackKey = Key
 		end
 
-		function tas.core:getBackKeybind()
+		function Tas.core:getBackKeybind()
 			return self._goBackKey
 		end
 
-		function tas.core:saveToFile(fileName)
+		function Tas.core:saveToFile(FileName)
 			if #self._recordingFrames == 0 then return end
 
-			local success, encoded = pcall(function()
-				return httpService:JSONEncode(self._recordingFrames) 
+			local Success, Encoded = pcall(function()
+				return HttpService:JSONEncode(self._recordingFrames)
 			end)
 
-			if success then 
-				writefile(`TAS Files/{fileName}.json`, encoded)
+			if Success then
+				writefile(`TAS Files/{FileName}.json`, Encoded)
 			end
 		end
 
-		function tas.core:getFile(fileName)
-			if not isfolder("TAS Files") then 
+		function Tas.core:getFile(FileName)
+			if not isfolder("TAS Files") then
 				makefolder("TAS Files")
 			end
 
-			if not isfile(`TAS Files/{fileName}.json`) then return end
+			if not isfile(`TAS Files/{FileName}.json`) then return end
 
-			local success, decoded = pcall(function()
-				return httpService:JSONDecode(readfile(`TAS Files/{fileName}.json`))
+			local Success, Decoded = pcall(function()
+				return HttpService:JSONDecode(readfile(`TAS Files/{FileName}.json`))
 			end)
 
-			if success then 
-				return decoded
+			if Success then
+				return Decoded
 			end
 		end
 
-		function tas.core:syncTASFiles()
-			if not request then 
-				return interface:sendConsoleMessage("Your executor doesnt support requests!")
+		function Tas.core:syncTASFiles()
+			if not request then
+				return Interface:sendConsoleMessage("Your executor doesnt support requests!")
 			end
 
-			interface:sendConsoleMessage("Checking TAS files...")
+			Interface:sendConsoleMessage("Checking TAS files...")
 
-			if not isfolder("TAS Files") then 
+			if not isfolder("TAS Files") then
 				makefolder("TAS Files")
 			end
 
-			local result = request({
+			local Result = request({
 				Url = "https://api.github.com/repos/rxd977/Scripts/contents/Assets/ObbyRoyale",
 				Method = "GET"
 			})
 
-			local success, files = pcall(function()
-				return httpService:JSONDecode(result.Body)
+			local Success, Files = pcall(function()
+				return HttpService:JSONDecode(Result.Body)
 			end)
 
-			if not success or not files then
-				return interface:sendConsoleMessage("Failed to fetch TAS file list!")
+			if not Success or not Files then
+				return Interface:sendConsoleMessage("Failed to fetch TAS file list!")
 			end
 
-			local downloadCount = 0
+			local DownloadCount = 0
 
-			for _, file in files do
-				if file.type ~= "file" or not file.name:match("%.json$") then continue end
+			for _, File in Files do
+				if File.type ~= "file" or not File.name:match("%.json$") then continue end
 
-				local fileName = file.name:gsub("%.json$", "")
-				local filePath = `TAS Files/{file.name}`
+				local FileName = File.name:gsub("%.json$", "")
+				local FilePath = `TAS Files/{File.name}`
 
-				if not isfile(filePath) then
-					interface:sendConsoleMessage(`Downloading {file.name}...`)
+				if not isfile(FilePath) then
+					Interface:sendConsoleMessage(`Downloading {File.name}...`)
 
-					local downloadResult = request({
-						Url = file.download_url,
+					local DownloadResult = request({
+						Url = File.download_url,
 						Method = "GET"
 					})
 
-					if downloadResult.StatusCode == 200 then
-						writefile(filePath, downloadResult.Body)
-						downloadCount = downloadCount + 1
-						interface:sendConsoleMessage(`Downloaded {file.name}`)
+					if DownloadResult.StatusCode == 200 then
+						writefile(FilePath, DownloadResult.Body)
+						DownloadCount = DownloadCount + 1
+						Interface:sendConsoleMessage(`Downloaded {File.name}`)
 					else
-						interface:sendConsoleMessage(`Failed to download {file.name}`)
+						Interface:sendConsoleMessage(`Failed to download {File.name}`)
 					end
 				end
 			end
 
-			if downloadCount > 0 then
-				interface:sendConsoleMessage(`Finished! Downloaded {downloadCount} file(s)`)
+			if DownloadCount > 0 then
+				Interface:sendConsoleMessage(`Finished! Downloaded {DownloadCount} file(s)`)
 			else
-				interface:sendConsoleMessage("All TAS files up to date!")
+				Interface:sendConsoleMessage("All TAS files up to date!")
 			end
 		end
 
-		function tas.core:isUsingAllReplay()
+		function Tas.core:isUsingAllReplay()
 			return self._isUsingAllReplay
 		end
 
-		function tas.core:setSeekDirection(seekDirection)
-			self._seekDirection = seekDirection
+		function Tas.core:setSeekDirection(SeekDirection)
+			self._seekDirection = SeekDirection
 		end
 
-		function tas.core:getSeekDirection()
+		function Tas.core:getSeekDirection()
 			return self._seekDirection
 		end
 
-		function tas.core:setFreezeFrame(freezeFrame)
-			self._freezeFrame = freezeFrame
+		function Tas.core:setFreezeFrame(FreezeFrame)
+			self._freezeFrame = FreezeFrame
 		end
 
-		function tas.core:getFreezeFrame()
+		function Tas.core:getFreezeFrame()
 			return self._freezeFrame
 		end
 
-		function tas.core:isFrozen()
+		function Tas.core:isFrozen()
 			return self._isFrozen
 		end
 
-		function tas.core:getRecordingFrames()
+		function Tas.core:getRecordingFrames()
 			return self._recordingFrames
 		end
 
-		function tas.core:isReplaying()
+		function Tas.core:isReplaying()
 			return self._isReplaying
 		end
 
-		function tas.core:isRecording()
+		function Tas.core:isRecording()
 			return self._isRecording
 		end
 
-		function tas.core:startRecording()
-			if self._isRecording or self._isReplaying or self._isFrozen then return end		
+		function Tas.core:startRecording()
+			if self._isRecording or self._isReplaying or self._isFrozen then return end
 
-			self._isRecording = true 
+			self._isRecording = true
 			self._recordingFrames = {}
 
 			if setfpscap then setfpscap(60) end
 
-			tas.inputController:enableControls()
+			Tas.inputController:enableControls()
 
 			task.spawn(function()
-				while self._isRecording do 
-					if self._isFrozen then runService.RenderStepped:Wait() continue end
+				while self._isRecording do
+					if self._isFrozen then RunService.RenderStepped:Wait() continue end
 
-					local humanoid = util:getHumanoid()
-					if not humanoid then runService.RenderStepped:Wait() continue end 
+					local Humanoid = Util:getHumanoid()
+					if not Humanoid then RunService.RenderStepped:Wait() continue end
 
-					local rootPart = util:getRootPart()
-					if not rootPart then runService.RenderStepped:Wait() continue end 
+					local RootPart = Util:getRootPart()
+					if not RootPart then RunService.RenderStepped:Wait() continue end
 
-					interface:setStatus("Recording")
+					Interface:setStatus("Recording")
 
-					local frame = {}
+					local Frame = {}
 
-					frame._rootPartCFrame = util:roundTable(util:cframeToTable(rootPart.CFrame), 3)
-					frame._rootPartVelocity = util:roundTable(util:vector3ToTable(rootPart.Velocity), 3)
-					frame._rootPartRotVelocity = util:roundTable(util:vector3ToTable(rootPart.RotVelocity), 3)
-					frame._cameraCFrame = util:roundTable(util:cframeToTable(currentCamera.CFrame), 3)
-					frame._zoom = util:roundNumber(tas.cameraController:getZoom(), 3)
-					frame._humanoidState = humanoid:GetState().Value
-					frame._pose = tas.animationController:getPose()
-					frame._animationQueue = tas.animationController:getAnimationQueue()
-					frame._animationSpeed = util:roundNumber(tas.animationController:getAnimationSpeed(), 3)
-					frame._shiftlockState = tas.inputController:getShiftLockState()
-					frame._mousePosition = util:roundTable(util:vector2ToTable(userInputService:GetMouseLocation()), 3)
+					Frame._rootPartCFrame = Util:roundTable(Util:cframeToTable(RootPart.CFrame), 3)
+					Frame._rootPartVelocity = Util:roundTable(Util:vector3ToTable(RootPart.Velocity), 3)
+					Frame._rootPartRotVelocity = Util:roundTable(Util:vector3ToTable(RootPart.RotVelocity), 3)
+					Frame._cameraCFrame = Util:roundTable(Util:cframeToTable(CurrentCamera.CFrame), 3)
+					Frame._zoom = Util:roundNumber(Tas.cameraController:getZoom(), 3)
+					Frame._humanoidState = Humanoid:GetState().Value
+					Frame._pose = Tas.animationController:getPose()
+					Frame._animationQueue = Tas.animationController:getAnimationQueue()
+					Frame._animationSpeed = Util:roundNumber(Tas.animationController:getAnimationSpeed(), 3)
+					Frame._shiftlockState = Tas.inputController:getShiftLockState()
+					Frame._mousePosition = Util:roundTable(Util:vector2ToTable(UserInputService:GetMouseLocation()), 3)
 
-					table.insert(self._recordingFrames, frame)
+					table.insert(self._recordingFrames, Frame)
 
-					tas.animationController._animationQueue = {}
+					Tas.animationController._animationQueue = {}
 
-					runService.RenderStepped:Wait()
+					RunService.RenderStepped:Wait()
 				end
 			end)
 		end
 
-		function tas.core:stopRecording()
-			if not self._isRecording or self._isReplaying then return end 
+		function Tas.core:stopRecording()
+			if not self._isRecording or self._isReplaying then return end
 
-			interface:setStatus("Not Recording")
+			Interface:setStatus("Not Recording")
 
 			self._isRecording = false
-			tas.animationController._animationQueue = {}
+			Tas.animationController._animationQueue = {}
 		end
 
-		function tas.core:startReplaying(frames, useAll)
-			if self._isReplaying or self._isRecording then return end 
+		function Tas.core:startReplaying(Frames, UseAll)
+			if self._isReplaying or self._isRecording then return end
 
 			setthreadidentity(8)
 
 			self._isReplaying = true
-			self._isUsingAllReplay = useAll
+			self._isUsingAllReplay = UseAll
 
-			interface:setStatus("Replaying")
+			Interface:setStatus("Replaying")
 
-			frames = frames or self._recordingFrames
+			Frames = Frames or self._recordingFrames
 
-			tas.animationController:setDisabled(true) 
-			tas.inputController:disableControls()
+			Tas.animationController:setDisabled(true)
+			Tas.inputController:disableControls()
 
-			workspace.Gravity = 0 
+			workspace.Gravity = 0
 
-			local frameIndex = 1
+			local FrameIndex = 1
 
 			task.spawn(function()
-				while self._isReplaying do 
-					local humanoid = util:getHumanoid()
-					if not humanoid then runService.Heartbeat:Wait() continue end 
+				while self._isReplaying do
+					local Humanoid = Util:getHumanoid()
+					if not Humanoid then RunService.Heartbeat:Wait() continue end
 
-					local rootPart = util:getRootPart()
-					if not rootPart then runService.Heartbeat:Wait() continue end 
+					local RootPart = Util:getRootPart()
+					if not RootPart then RunService.Heartbeat:Wait() continue end
 
-					local frame = frames[frameIndex]
-					if not frame then runService.Heartbeat:Wait() self:stopReplaying() continue end
+					local Frame = Frames[FrameIndex]
+					if not Frame then RunService.Heartbeat:Wait() self:stopReplaying() continue end
 
 
-					tas.animationController:setDisabled(true) 
+					Tas.animationController:setDisabled(true)
 
-					workspace.Gravity = 0 
+					workspace.Gravity = 0
 
-					humanoid.WalkSpeed = 0 
-					humanoid.JumpPower = 0 
+					Humanoid.WalkSpeed = 0
+					Humanoid.JumpPower = 0
 
-					if useAll then
-						tas.cameraController:setCFrame(util:tableToCFrame(frame._cameraCFrame))
-						tas.cameraController:setZoom(frame._zoom)
+					if UseAll then
+						Tas.cameraController:setCFrame(Util:tableToCFrame(Frame._cameraCFrame))
+						Tas.cameraController:setZoom(Frame._zoom)
 					end
 
-					humanoid:ChangeState(frame._humanoidState)
+					Humanoid:ChangeState(Frame._humanoidState)
 
-					tas.animationController:setPose(frame._pose)
+					Tas.animationController:setPose(Frame._pose)
 
-					for _, animation in frame._animationQueue do 
-						local animationName = animation[1]
-						local animationTime = animation[2]
+					for _, Animation in Frame._animationQueue do
+						local AnimationName = Animation[1]
+						local AnimationTime = Animation[2]
 
-						if animationName == "walk" then
-							if humanoid.FloorMaterial ~= Enum.Material.Air and frame._humanoidState ~= 3 then
-								tas.animationController:playAnimation("walk", animationTime, true) 
+						if AnimationName == "walk" then
+							if Humanoid.FloorMaterial ~= Enum.Material.Air and Frame._humanoidState ~= 3 then
+								Tas.animationController:playAnimation("walk", AnimationTime, true)
 							end
 						else
-							tas.animationController:playAnimation(animationName, animationTime, true) 
+							Tas.animationController:playAnimation(AnimationName, AnimationTime, true)
 						end
 					end
 
-					pcall(function() tas.animationController:setAnimationSpeed(frame._animationSpeed) end)
+					pcall(function() Tas.animationController:setAnimationSpeed(Frame._animationSpeed) end)
 
-					if useAll then
-						tas.inputController:toggleShiftLock(frame._shiftlockState)
+					if UseAll then
+						Tas.inputController:toggleShiftLock(Frame._shiftlockState)
 
-						local resolution = tas.inputController:getResolution()
-						local cursor = tas.inputController:getCursor()
+						local Resolution = Tas.inputController:getResolution()
+						local Cursor = Tas.inputController:getCursor()
 
-						if not frame._shiftlockState and frame._zoom > 0.52 then
-							mousemoveabs(frame._mousePosition[1], frame._mousePosition[2])
+						if not Frame._shiftlockState and Frame._zoom > 0.52 then
+							mousemoveabs(Frame._mousePosition[1], Frame._mousePosition[2])
 						else
-							mousemoveabs((resolution.X / 2) + cursor.offset.X - guiInset.X,
-								(resolution.Y / 2) + cursor.offset.Y - guiInset.Y - 36)
+							mousemoveabs((Resolution.X / 2) + Cursor.offset.X - GuiInset.X,
+								(Resolution.Y / 2) + Cursor.offset.Y - GuiInset.Y - 36)
 						end
 					end
 
-					rootPart.CFrame = util:tableToCFrame(frame._rootPartCFrame)
+					RootPart.CFrame = Util:tableToCFrame(Frame._rootPartCFrame)
 
-					frameIndex = frameIndex + 1
+					FrameIndex = FrameIndex + 1
 
-					runService.Heartbeat:Wait()
+					RunService.Heartbeat:Wait()
 				end
 			end)
 
 			task.spawn(function()
-				while self._isReplaying do 
-					local character = localPlayer.Character 
-					if not character then runService.Stepped:Wait() continue end
+				while self._isReplaying do
+					local Character = LocalPlayer.Character
+					if not Character then RunService.Stepped:Wait() continue end
 
-					local rootPart = character:FindFirstChild("HumanoidRootPart")
-					if not rootPart then runService.Stepped:Wait() continue end 
+					local RootPart = Character:FindFirstChild("HumanoidRootPart")
+					if not RootPart then RunService.Stepped:Wait() continue end
 
-					if workspace.Gravity ~= DEFAULT_GRAVITY then 
-						for _, obj in character:GetChildren() do
-							if not obj:IsA("BasePart") then continue end
+					if workspace.Gravity ~= DefaultGravity then
+						for _, Obj in Character:GetChildren() do
+							if not Obj:IsA("BasePart") then continue end
 
-							obj.CanCollide = false
+							Obj.CanCollide = false
 						end
 					end
 
-					local frame = frames[frameIndex]
-					if not frame then runService.Stepped:Wait() continue end 
+					local Frame = Frames[FrameIndex]
+					if not Frame then RunService.Stepped:Wait() continue end
 
-					rootPart.CFrame =  util:tableToCFrame(frame._rootPartCFrame)
+					RootPart.CFrame =  Util:tableToCFrame(Frame._rootPartCFrame)
 
-					runService.Stepped:Wait()
+					RunService.Stepped:Wait()
 				end
 			end)
 		end
 
-		function tas.core:stopReplaying()
+		function Tas.core:stopReplaying()
 			if not self._isReplaying or self._isRecording then return end
 
-			local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
-			local rootPart = character:WaitForChild("HumanoidRootPart")
+			local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+			local RootPart = Character:WaitForChild("HumanoidRootPart")
 
-			interface:setStatus("Not Recording")
+			Interface:setStatus("Not Recording")
 
 			self._isReplaying = false
-			self._isUsingAllReplay = false
 
-			rootPart.AssemblyLinearVelocity = Vector3.zero 
-			rootPart.AssemblyAngularVelocity = Vector3.zero
+			RootPart.AssemblyLinearVelocity = Vector3.zero
+			RootPart.AssemblyAngularVelocity = Vector3.zero
 
-			tas.inputController:enableControls()
-			tas.animationController:setDisabled(false)
+			Tas.inputController:enableControls()
+			Tas.animationController:setDisabled(false)
 
-			character.Head.CanCollide = true 
-			character.Torso.CanCollide = true 
-			character.HumanoidRootPart.CanCollide = true 
-			character.Humanoid.JumpPower = tas.animationController:getOriginalJumpPower()
-			character.Humanoid.WalkSpeed = tas.animationController:getOriginalWalkSpeed()
+			Character.Head.CanCollide = true
+			Character.Torso.CanCollide = true
+			Character.HumanoidRootPart.CanCollide = true
+			Character.Humanoid.JumpPower = Tas.animationController:getOriginalJumpPower()
+			Character.Humanoid.WalkSpeed = Tas.animationController:getOriginalWalkSpeed()
 
-			workspace.Gravity = DEFAULT_GRAVITY
+			workspace.Gravity = DefaultGravity
 
-			tas.animationController:playAnimation("idle", 0.1)
-			tas.animationController:setPose("Standing")
+			Tas.animationController:playAnimation("idle", 0.1)
+			Tas.animationController:setPose("Standing")
 		end
 
-		function tas.core:freeze(state)
-			state = if state == nil then not self._isFrozen else state
+		function Tas.core:freeze(State)
+			State = if State == nil then not self._isFrozen else State
 
-			if self._isReplaying or self._isFrozen == state then return end 
+			if self._isReplaying or self._isFrozen == State then return end
 
 			self._seekDirection = 0
 
-			if not state then
-				for i = #self._recordingFrames, self._freezeFrame, -1 do 
-					self._recordingFrames[i] = nil
+			if not State then
+				for I = #self._recordingFrames, self._freezeFrame, -1 do
+					self._recordingFrames[I] = nil
 				end
 
-				self._isFrozen = false 
+				self._isFrozen = false
 
-				local rootPart = util:getRootPart()
-				if rootPart then rootPart.Anchored = false end
+				local RootPart = Util:getRootPart()
+				if RootPart then RootPart.Anchored = false end
 
 				return
 			end
 
-			interface:setStatus("Frozen")
+			Interface:setStatus("Frozen")
 
-			self._isFrozen = true 
+			self._isFrozen = true
 			self._freezeFrame = #self._recordingFrames
 
 			task.spawn(function()
-				while self._isFrozen do 
-					local humanoid = util:getHumanoid()
-					if not humanoid then runService.RenderStepped:Wait() continue end 
+				while self._isFrozen do
+					local Humanoid = Util:getHumanoid()
+					if not Humanoid then RunService.RenderStepped:Wait() continue end
 
-					local rootPart = util:getRootPart()
-					if not rootPart then runService.RenderStepped:Wait() continue end 
+					local RootPart = Util:getRootPart()
+					if not RootPart then RunService.RenderStepped:Wait() continue end
 
-					if self._freezeFrame == 0 or self._freezeFrame > #self._recordingFrames then runService.RenderStepped:Wait() continue end
+					if self._freezeFrame == 0 or self._freezeFrame > #self._recordingFrames then RunService.RenderStepped:Wait() continue end
 
-					local freezeFrame = util:roundNumber(self._freezeFrame, 0)
-					local frame = self._recordingFrames[freezeFrame]
+					local FreezeFrame = Util:roundNumber(self._freezeFrame, 0)
+					local Frame = self._recordingFrames[FreezeFrame]
 
-					local pose
-					local animation
+					local Pose
+					local Animation
 
-					for i = freezeFrame, 1, -1 do
-						if pose and animation then break end
+					for I = FreezeFrame, 1, -1 do
+						if Pose and Animation then break end
 
-						local frame = self._recordingFrames[i]
+						local Frame = self._recordingFrames[I]
 
-						pose = frame._pose 
-						animation = frame._animationQueue[#frame._animationQueue]
+						Pose = Frame._pose
+						Animation = Frame._animationQueue[#Frame._animationQueue]
 					end
 
-					if animation then
-						if animation[1] == "walk" then
-							if humanoid.FloorMaterial ~= Enum.Material.Air and frame._humanoidState ~= 3 then
-								tas.animationController:playAnimation("walk", animation[2], true)
+					if Animation then
+						if Animation[1] == "walk" then
+							if Humanoid.FloorMaterial ~= Enum.Material.Air and Frame._humanoidState ~= 3 then
+								Tas.animationController:playAnimation("walk", Animation[2], true)
 							end
 						else
-							tas.animationController:playAnimation(animation[1], animation[2], true)
+							Tas.animationController:playAnimation(Animation[1], Animation[2], true)
 						end
 					end
 
-					rootPart.Anchored = true
+					RootPart.Anchored = true
 
-					pcall(function() tas.animationController:playAnimation(frame._animationSpeed) end)
+					pcall(function() Tas.animationController:playAnimation(Frame._animationSpeed) end)
 
-					tas.animationController:setPose(pose)
+					Tas.animationController:setPose(Pose)
 
-					humanoid:ChangeState(frame._humanoidState)
+					Humanoid:ChangeState(Frame._humanoidState)
 
-					rootPart.Velocity = util:tableToVector3(frame._rootPartVelocity)
-					rootPart.RotVelocity = util:tableToVector3(frame._rootPartRotVelocity)
-					rootPart.CFrame = util:tableToCFrame(frame._rootPartCFrame)
+					RootPart.Velocity = Util:tableToVector3(Frame._rootPartVelocity)
+					RootPart.RotVelocity = Util:tableToVector3(Frame._rootPartRotVelocity)
+					RootPart.CFrame = Util:tableToCFrame(Frame._rootPartCFrame)
 
-					currentCamera.CFrame = util:tableToCFrame(frame._cameraCFrame)
+					CurrentCamera.CFrame = Util:tableToCFrame(Frame._cameraCFrame)
 
-					tas.cameraController:setZoom(frame._zoom)
+					Tas.cameraController:setZoom(Frame._zoom)
 
-					tas.inputController:toggleShiftLock(frame._shiftlockState)
+					Tas.inputController:toggleShiftLock(Frame._shiftlockState)
 
-					mousemoveabs(frame._mousePosition[1], frame._mousePosition[2])
+					mousemoveabs(Frame._mousePosition[1], Frame._mousePosition[2])
 
-					runService.RenderStepped:Wait()
+					RunService.RenderStepped:Wait()
 				end
 			end)
 		end
 	end
 
 	do -- loader:
-		function tas:load()
+		function Tas:load()
 			self.animationController:init()
 			self.cameraController:init()
 			self.inputController:init()
-		end 
+		end
 	end
 end
+
 
 do -- obby royale:
 
 	do -- autoPlayController:
-		function obbyRoyale.autoPlayController:setEnabled(state)
-			self._isAutoPlayEnabled = state
+		local function ResolveId(Stage)
+			local function ResolveMainModel(Model)
+				if Model:GetAttribute("StageNum") then 
+					return Model 
+				elseif Model:FindFirstChildWhichIsA("Model") and Model:FindFirstChildWhichIsA("Model"):GetAttribute("StageNum") then 
+					return Model:FindFirstChildWhichIsA("Model")
+				end
+				return nil
+			end
+
+			local MainModel = ResolveMainModel(Stage)
+			if not MainModel then
+				warn("Didnt find main model")
+				return
+			end
+
+			local ID = MainModel:GetAttribute("ID") or Stage:GetAttribute("ID") 
+			if ID then 
+				return ID
+			end
+
+			local StageNum = MainModel:GetAttribute("StageNum")
+			if not StageNum then 
+				warn("Failed to get stage num")
+				return 
+			end
+
+			local Difficulty = MainModel:GetAttribute("Difficulty") 
+			if not Difficulty then 
+				warn("Failed to get difficulty")
+				return
+			end
+
+			local PartCount = MainModel:GetAttribute("PartCount") 
+			if not PartCount then 
+				warn("Failed to get part count")
+				return
+			end
+
+			for _, StageModel in ObbyRoyale.tasController:getStages():GetChildren() do 
+				local Model = ResolveMainModel(StageModel)
+				if not Model then 
+					continue 
+				end
+
+				if Model:GetAttribute("Difficulty") ~= Difficulty then 
+					continue 
+				end
+
+				if Model:GetAttribute("StageNum") ~= StageNum then 
+					continue
+				end
+
+				if Model:GetAttribute("PartCount") ~= PartCount then 
+					continue 
+				end
+
+				return StageModel:GetAttribute("ID") or StageModel.Name
+			end
+
+			return nil
 		end
 
-		function obbyRoyale.autoPlayController:getSpawn()
+
+		function ObbyRoyale.autoPlayController:setEnabled(State)
+			self._isAutoPlayEnabled = State
+		end
+
+		function ObbyRoyale.autoPlayController:getSpawn()
 			if not workspace.Arena:FindFirstChild("Stages") then return end
 
-			local stages = workspace.Arena:FindFirstChild("Stages")
-			if not stages then return end 
+			local Stages = workspace.Arena:FindFirstChild("Stages")
+			if not Stages then return end
 
-			local stage = stages:WaitForChild(localPlayer.Name)
+			local Stage = Stages:WaitForChild(LocalPlayer.Name)
 
-			local startPosition = stage.Settings.Start.Position
+			local StartPosition = Stage.Settings.Start.Position
 
-			local closestSpawn
-			local lowestMagitude = math.huge
+			local ClosestSpawn
+			local LowestMagitude = math.huge
 
-			for _, obj in workspace.Arena.Spawns:GetChildren()  do
-				local magnitude = (startPosition - obj.Top.Position).Magnitude
+			for _, Obj in workspace.Arena.Spawns:GetChildren()  do
+				local Magnitude = (StartPosition - Obj.Top.Position).Magnitude
 
-				if magnitude < lowestMagitude then 
-					closestSpawn = obj
-					lowestMagitude = magnitude
+				if Magnitude < LowestMagitude then
+					ClosestSpawn = Obj
+					LowestMagitude = Magnitude
 				end
 			end
 
-			return closestSpawn
+			return ClosestSpawn
 		end
 
-		function obbyRoyale.autoPlayController:stopAutoPlay()	
-			tas.core:stopReplaying()
+		function ObbyRoyale.autoPlayController:stopAutoPlay()
+			Tas.core:stopReplaying()
 		end
 
-		function obbyRoyale.autoPlayController:startAutoPlay(stageId)	
+		function ObbyRoyale.autoPlayController:startAutoPlay(StageId)
 			setthreadidentity(8)
 
-			stageId = stageId or workspace.GameStatus:GetAttribute("CurrentStageID")
+			local Frames = Tas.core:getFile(StageId)
+			if not Frames then return end
 
-			local frames = tas.core:getFile(stageId)
-			if not frames then return end
+			local Spawn = self:getSpawn()
+			if not Spawn then return end
 
-			local spawn = self:getSpawn()
-			if not spawn then return end 
+			local RootPart = Util:getRootPart()
+			if not RootPart then return end
 
-			local rootPart = util:getRootPart()
-			if not rootPart then return end
+			local OldStartPosition = Util:tableToCFrame(Frames[1]._rootPartCFrame).Position
 
-			local oldStartPosition = util:tableToCFrame(frames[1]._rootPartCFrame).Position
+			local RelativeSpawn = (function()
+				for _, Spawn in workspace.Arena.Spawns:GetChildren() do 
+					if Spawn:GetAttribute("SpawnOrder") == 1 then 
+						return Spawn
+					end
+				end
+			end)()
+			local StartPositionOffset = Vector3.new(0, OldStartPosition.Y - GameY, 0)
+			local RelativeCFrame = RelativeSpawn.PrimaryPart.CFrame
 
-			local startPositionOffset = Vector3.new(0, oldStartPosition.Y - GAME_Y, 0)
-			local relativeCFrame = workspace.Arena.Spawns["1"].PrimaryPart.CFrame
+			local function TransformCFrame(Cframe)
+				local Old = Spawn.PrimaryPart.CFrame:ToWorldSpace(RelativeCFrame:ToObjectSpace(Util:tableToCFrame(Cframe)))
+				local New = Spawn.PrimaryPart.CFrame:ToWorldSpace(RelativeCFrame:ToObjectSpace(Util:tableToCFrame(Cframe))) - StartPositionOffset
 
-			local function transformCFrame(cframe)
-				local old = spawn.PrimaryPart.CFrame:ToWorldSpace(relativeCFrame:ToObjectSpace(util:tableToCFrame(cframe)))
-				local new = spawn.PrimaryPart.CFrame:ToWorldSpace(relativeCFrame:ToObjectSpace(util:tableToCFrame(cframe))) - startPositionOffset
-
-				return util:cframeToTable(new)
+				return Util:cframeToTable(New)
 			end
 
-			for i = 1, #frames do 
-				local frame = frames[i]
+			for I = 1, #Frames do
+				local Frame = Frames[I]
 
-				frame._rootPartCFrame, frame._cameraCFrame = transformCFrame(frame._rootPartCFrame), transformCFrame(frame._cameraCFrame)
+				Frame._rootPartCFrame, Frame._cameraCFrame = TransformCFrame(Frame._rootPartCFrame), TransformCFrame(Frame._cameraCFrame)
 			end
 
-			interface:sendConsoleMessage(`Autoplay started ({stageId})`)
+			Interface:sendConsoleMessage(`Autoplay started ({StageId})`)
 
-			tas.core:startReplaying(frames)
+			Tas.core:startReplaying(Frames, Tas.core._isUsingAllReplay)
 		end
 
-		function obbyRoyale.autoPlayController:init()
-			workspace.Arena.Stages.ChildAdded:Connect(function(instance)
-				if instance.Name ~= localPlayer.Name or not self._isAutoPlayEnabled then return end 
+		function ObbyRoyale.autoPlayController:startPracticeAutoPlay()
+			local Stage = workspace.PracticeArena.Stage:FindFirstChildWhichIsA("Model")
+			if not Stage then return end 
 
-				local stageModel = instance:FindFirstChildWhichIsA("Model") or instance
-				local stageId = stageModel and stageModel:GetAttribute("ID")
+			local StageId = ResolveId(Stage)
+			if not StageId then 
+				warn("Failed to get stage id for instance")
+				return
+			end
 
-				self:startAutoPlay(stageId ~= 0 and stageId or nil)
+			local Frames = Tas.core:getFile(StageId)
+			if not Frames then
+				Interface:sendConsoleMessage(`No TAS for stage {StageId}`)
+				return
+			end
+
+			local StartPart = workspace:FindFirstChild("PracticeArena") and workspace.PracticeArena.Start.PrimaryPart
+			if not StartPart then
+				Interface:sendConsoleMessage("PracticeArena.Start not found")
+				return
+			end
+
+			local FramesCopy = {}
+			for I, Frame in Frames do
+				FramesCopy[I] = table.clone(Frame)
+			end
+
+			local OldStartPosition = Util:tableToCFrame(FramesCopy[1]._rootPartCFrame).Position
+			local StartPositionOffset = Vector3.new(0, OldStartPosition.Y - GameY, 0)
+			local RelativeSpawn = (function()
+				for _, Spawn in workspace.Arena.Spawns:GetChildren() do 
+					if Spawn:GetAttribute("SpawnOrder") == 1 then 
+						return Spawn
+					end
+				end
+			end)()
+			local RelativeCFrame = RelativeSpawn.PrimaryPart.CFrame
+
+			local function TransformCFrame(Cframe)
+				local Old = workspace.PracticeArena.Start.PrimaryPart.CFrame:ToWorldSpace(RelativeCFrame:ToObjectSpace(Util:tableToCFrame(Cframe)))
+				local New = workspace.PracticeArena.Start.PrimaryPart.CFrame:ToWorldSpace(RelativeCFrame:ToObjectSpace(Util:tableToCFrame(Cframe))) - StartPositionOffset
+
+				return Util:cframeToTable(New)
+			end
+
+			for _, Frame in FramesCopy do
+				Frame._rootPartCFrame = TransformCFrame(Frame._rootPartCFrame)
+				Frame._cameraCFrame   = TransformCFrame(Frame._cameraCFrame)
+			end
+
+			Interface:sendConsoleMessage(`Practice autoplay started ({StageId})`)
+			Tas.core:startReplaying(FramesCopy, Tas.core._isUsingAllReplay)
+		end
+
+		function ObbyRoyale.autoPlayController:init()
+			task.wait()
+
+			workspace.Arena.Stages.ChildAdded:Connect(function(Instance)
+				if Instance.Name ~= LocalPlayer.Name or not self._isAutoPlayEnabled then return end
+
+				local StageId = ResolveId(Instance)
+				if not StageId then 
+					warn("Failed to find id for instance")
+					return
+				end
+
+				print(`Got {StageId}`)
+
+				self:startAutoPlay(StageId)
 			end)
 
-			workspace.Preloaded.ChildAdded:Connect(function(instance)
-				if instance.Name ~= localPlayer.Name then return end 
+			workspace.Preloaded.ChildAdded:Connect(function(Instance)
+				if Instance.Name ~= LocalPlayer.Name then return end
 
 				self:stopAutoPlay()
 			end)
 		end
 	end
 
-	do 
-		function obbyRoyale.tasController:hookPracticeUI()
+	do
+		function ObbyRoyale.tasController:hookPracticeUI()
 			if self._isPracticeUIHooked then return end
 
-			local oldOpen = mainUIController.Open
-			mainUIController.Open = function(self, menu)
-				if menu == playerGui.MainUI.PracticeUI and not checkcaller() then return end 
+			local OldOpen = MainUIController.Open
+			MainUIController.Open = function(self, Menu)
+				if Menu == PlayerGui.MainUI.PracticeUI and not checkcaller() then return end
 
-				return oldOpen(self, menu)
+				return OldOpen(self, Menu)
 			end
-			self._oldOpenUI = oldOpen
+			self._oldOpenUI = OldOpen
 
-			local oldClose = mainUIController.Close 
-			mainUIController.Close = function(self, menu)
-				if menu == playerGui.MainUI.PracticeUI and not checkcaller() then return end
+			local OldClose = MainUIController.Close
+			MainUIController.Close = function(self, Menu)
+				if Menu == PlayerGui.MainUI.PracticeUI and not checkcaller() then return end
 
-				return oldClose(self, menu)
+				return OldClose(self, Menu)
 			end
-			self._oldCloseUI = oldClose
+			self._oldCloseUI = OldClose
 
 			self._isPracticeUIHooked = true
 		end
 
-		function obbyRoyale.tasController:unHookPracticeUI()	
+		function ObbyRoyale.tasController:unHookPracticeUI()
 			if not self._isPracticeUIHooked then return end
 
-			mainUIController.Open = self._oldOpenUI
-			mainUIController.Close = self._oldCloseUI
+			MainUIController.Open = self._oldOpenUI
+			MainUIController.Close = self._oldCloseUI
 
 			self._isPracticeUIHooked = false
 		end
 
-		function obbyRoyale.tasController:getStageDifficulty(stageId)
-			for _, difficulty in orUtils.Stages do 
-				for _, stage in difficulty.Stages do 
-					if stage.ID ~= tonumber(stageId) then continue end 
+		function ObbyRoyale.tasController:getStageDifficulty(StageId)
+			for _, Difficulty in OrUtils.Stages do
+				for _, Stage in Difficulty.Stages do
+					if Stage.ID ~= tonumber(StageId) then continue end
 
-					return difficulty.Difficulty
+					return Difficulty.Difficulty
 				end
 			end
 		end
 
-		function obbyRoyale.tasController:loadStages()
-			local stages = insertService:LoadLocalAsset("rbxassetid://103711201260351")
-			stages.Parent = replicatedStorage
-
-			self._stages = stages
+		function ObbyRoyale.tasController:getStages()
+			return self._stages
 		end
 
-		function obbyRoyale.tasController:selectStage()
+		function ObbyRoyale.tasController:loadStages()
+			local Stages = InsertService:LoadLocalAsset("rbxassetid://96197253083956")
+			Stages.Parent = ReplicatedStorage
+
+			self._stages = Stages
+		end
+
+		function ObbyRoyale.tasController:selectStage()
 			if self._isSelectingStage then return end
 
 			self._isSelectingStage = true
 
-			if playerGui.MainUI.PracticeUI.Visible then 
-				mainUIController:Close(playerGui.MainUI.PracticeUI)
+			if PlayerGui.MainUI.PracticeUI.Visible then
+				MainUIController:Close(PlayerGui.MainUI.PracticeUI)
 
 				task.wait(0.5)
 			end
 
 			self:hookPracticeUI()
 
-			local function createLabel(text, position, color, parent)
-				local completed = Instance.new("TextLabel")
-				completed.Text = text
-				completed.AnchorPoint = Vector2.new(0.5, 0.5)
-				completed.Position = position
-				completed.Size = UDim2.fromScale(1, 0.1)
-				completed.TextColor3 = color
-				completed.BackgroundTransparency = 1
-				completed.TextSize = 20
-				completed.Font = Enum.Font.FredokaOne
-				completed.Parent = parent
+			local function createLabel(Text, Position, Color, Parent)
+				local Completed = Instance.new("TextLabel")
+				Completed.Text = Text
+				Completed.AnchorPoint = Vector2.new(0.5, 0.5)
+				Completed.Position = Position
+				Completed.Size = UDim2.fromScale(1, 0.1)
+				Completed.TextColor3 = Color
+				Completed.BackgroundTransparency = 1
+				Completed.TextSize = 20
+				Completed.Font = Enum.Font.FredokaOne
+				Completed.Parent = Parent
 
-				local stroke = Instance.new("UIStroke")
-				stroke.Thickness = 2
-				stroke.Parent = completed
+				local Stroke = Instance.new("UIStroke")
+				Stroke.Thickness = 2
+				Stroke.Parent = Completed
 			end
 
-			local oldPopulateStages; oldPopulateStages = hookfunction(self._practiceENV.populateStages, newcclosure(function(...)			
-				oldPopulateStages(...)
+			local OldPopulateStages; OldPopulateStages = hookfunction(self._practiceENV.populateStages, newcclosure(function(...)
+				OldPopulateStages(...)
 
 				task.spawn(function()
-					for _, stageFrame in playerGui.MainUI.PracticeUI.Stages.Grid:GetChildren() do 
-						if not stageFrame:IsA("GuiButton") then continue end 
+					for _, StageFrame in PlayerGui.MainUI.PracticeUI.Stages.Grid:GetChildren() do
+						if not StageFrame:IsA("GuiButton") then continue end
 
-						if tas.core:getFile(stageFrame.Name) then 
-							createLabel("Completed!", UDim2.fromScale(0.5, 0.85), Color3.fromRGB(0, 255, 0), stageFrame)
+						if Tas.core:getFile(StageFrame.Name) then
+							createLabel("Completed!", UDim2.fromScale(0.5, 0.85), Color3.fromRGB(0, 255, 0), StageFrame)
 						end
 
-						createLabel(stageFrame.Name, UDim2.fromScale(0.5, 0.1), Color3.fromRGB(255, 255, 255), stageFrame)
+						createLabel(StageFrame.Name, UDim2.fromScale(0.5, 0.1), Color3.fromRGB(255, 255, 255), StageFrame)
 
-						hookfunction(getconnections(stageFrame.Load.LoadButton.MouseButton1Click)[1].Function, newcclosure(function()
-							interface._createPopup:Fire(stageFrame.Name)
+						hookfunction(getconnections(StageFrame.Load.LoadButton.MouseButton1Click)[1].Function, newcclosure(function()
+							Interface._createPopup:Fire(StageFrame.Name)
 						end))
 
 						task.wait()
 					end
 				end)
 			end))
-			self._oldPopulateStages = oldPopulateStages
+			self._oldPopulateStages = OldPopulateStages
 
 			self._practiceENV.back()
 
-			playerGui.MainUI.PracticeUI.DifficultyPick.Difficulties.CanvasPosition = Vector2.zero
+			PlayerGui.MainUI.PracticeUI.DifficultyPick.Difficulties.CanvasPosition = Vector2.zero
 
-			obbyRoyale.core:unlockPracticeStages()
+			ObbyRoyale.core:unlockPracticeStages()
 
-			for _, textLabel in playerGui.MainUI.PracticeUI.DifficultyPick:GetChildren() do 
-				if not textLabel:IsA("TextLabel") then continue end 
+			for _, TextLabel in PlayerGui.MainUI.PracticeUI.DifficultyPick:GetChildren() do
+				if not TextLabel:IsA("TextLabel") then continue end
 
-				if textLabel.Text == "Practice Stages" then 
-					textLabel.Text = "Select Stage"
-				else 
-					textLabel.Text = "Select stage to TAS"
+				if TextLabel.Text == "Practice Stages" then
+					TextLabel.Text = "Select Stage"
+				else
+					TextLabel.Text = "Select stage to TAS"
 				end
 			end
 
-			playerGui.MainUI.PracticeUI.Close.Visible = false
-			playerGui.MainUI.PracticeUI.Visible = true
+			PlayerGui.MainUI.PracticeUI.Close.Visible = false
+			PlayerGui.MainUI.PracticeUI.Visible = true
 
-			mainUIController:Open(playerGui.MainUI.PracticeUI)	
+			MainUIController:Open(PlayerGui.MainUI.PracticeUI)
 		end
 
-		function obbyRoyale.tasController:stopSelectingStage()
+		function ObbyRoyale.tasController:stopSelectingStage()
 			setthreadidentity(8)
 
 			if not self._isSelectingStage then return end
 
 			self._isSelectingStage = false
 
-			mainUIController:Close(playerGui.MainUI.PracticeUI)
+			MainUIController:Close(PlayerGui.MainUI.PracticeUI)
 
 			self._practiceENV.back()
 
-			if not self._isTASSING then 
+			if not self._isTASSING then
 				self:unHookPracticeUI()
 			end
 
 			hookfunction(self._practiceENV.populateStages, self._oldPopulateStages)
 
-			for _, textLabel in playerGui.MainUI.PracticeUI.DifficultyPick:GetChildren() do 
-				if not textLabel:IsA("TextLabel") then continue end 
+			for _, TextLabel in PlayerGui.MainUI.PracticeUI.DifficultyPick:GetChildren() do
+				if not TextLabel:IsA("TextLabel") then continue end
 
-				if textLabel.Text == "Select Stage" then 
-					textLabel.Text = "Practice Stages"
-				else 
-					textLabel.Text = "In this area you can practice stages from any of the difficulties in game"
+				if TextLabel.Text == "Select Stage" then
+					TextLabel.Text = "Practice Stages"
+				else
+					TextLabel.Text = "In this area you can practice stages from any of the difficulties in game"
 				end
 			end
 
-			playerGui.MainUI.PracticeUI.Visible = false
-			playerGui.MainUI.PracticeUI.Close.Visible = true
+			PlayerGui.MainUI.PracticeUI.Visible = false
+			PlayerGui.MainUI.PracticeUI.Close.Visible = true
 		end
 
-		function obbyRoyale.tasController:selectNextStage()
-			local stages = {}
+		function ObbyRoyale.tasController:selectNextStage()
+			local Stages = {}
 
-			for _, difficulty in orUtils.Stages do
-				for _, stage in difficulty.Stages do 
-					table.insert(stages, stage.ID)
+			for _, Difficulty in OrUtils.Stages do
+				for _, Stage in Difficulty.Stages do
+					table.insert(Stages, Stage.ID)
 				end
 			end
 
-			local nearest = nil
+			local Nearest = nil
 
-			for _, stage in stages do
-				if stage > tonumber(self._loadedStage or 0) and (nearest == nil or stage < nearest) then
-					nearest = stage
+			for _, Stage in Stages do
+				if Stage > tonumber(self._loadedStage or 0) and (Nearest == nil or Stage < Nearest) then
+					Nearest = Stage
 				end
 			end
 
-			if not nearest then 
-				nearest = 1
+			if not Nearest then
+				Nearest = 1
 			end
 
-			self:setupTAS(nearest)
+			self:setupTAS(Nearest)
 		end
 
-		function obbyRoyale.tasController:loadStage(stageId) 
-			local stageModel = self._stages[stageId]:Clone()
-			stageModel.Parent = playerGui.LoadedStage
+		function ObbyRoyale.tasController:loadStage(StageId)
+			local StageModel = self._stages[StageId]:Clone()
+			StageModel.Parent = PlayerGui.LoadedStage
 
-			self._loadedStage = stageId
+			self._loadedStage = StageId
 
-			return stageModel
+			return StageModel
 		end
 
-		function obbyRoyale.tasController:setupTAS(stageId, dontDisableControls)
+		function ObbyRoyale.tasController:setupTAS(StageId, DontDisableControls)
 			setthreadidentity(8)
 
 			self._isTASSING = true
 
 			self:stopSelectingStage()
-			self:loadStage(stageId)
+			self:loadStage(StageId)
 
-			interface:setStage(stageId)
+			Interface:setStage(StageId)
 
-			if not dontDisableControls then 
-				tas.inputController:disableControls()
+			if not DontDisableControls then
+				Tas.inputController:disableControls()
 			end
 
-			local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
-			character:PivotTo(workspace.PracticeArena.Start.PrimaryPart.CFrame + Vector3.new(0, 5, 0))
+			local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+			Character:PivotTo(workspace.PracticeArena.Start.PrimaryPart.CFrame + Vector3.new(0, 5, 0))
 		end
 
-		function obbyRoyale.tasController:init()
+		function ObbyRoyale.tasController:init()
 			self:loadStages()
 
-			self._practiceENV = getsenv(playerGui.MainUI.MainUIController.PracticeController)
+			--self._practiceENV = getsenv(PlayerGui.MainUI.MainUIController.PracticeController)
 		end
 	end
 
 	do -- core:
-		function obbyRoyale.core:unlockPracticeStages()
+		function ObbyRoyale.core:unlockPracticeStages()
 			setthreadidentity(8)
 
-			if not firesignal or not getupvalue or not setupvalue then return interface:sendConsoleMessage("Your executor doesnt support this!") end
+			if not firesignal or not getupvalue or not setupvalue then return Interface:sendConsoleMessage("Your executor doesnt support this!") end
 
-			if self._unlockedPracticeStages then return interface:sendConsoleMessage("Practice stages already unlocked!") end
+			if self._unlockedPracticeStages then return Interface:sendConsoleMessage("Practice stages already unlocked!") end
 
-			interface:sendConsoleMessage("Unlocked practice stages!")
+			Interface:sendConsoleMessage("Unlocked practice stages!")
 
-			playerGui.MainUI.PracticeUI.DifficultyPick.Difficulties.UnlockAll.Visible = false
-
-			local tbl = {}
-
-			for difficulty in difficulties do
-				table.insert(tbl, difficulty)
-			end
-
-			setupvalue(practiceController.Init, 2, tbl)
-
+			firesignal(ReplicatedStorage.ServerCommunication.Events.Practice.Purchases.AllUnlocked.OnClientEvent)
+			
 			self._unlockedPracticeStages = true
-
-			firesignal(replicatedStorage.ServerCommunication.Events.Practice.Purchases.AllUnlocked.OnClientEvent)
 		end
 
-		function obbyRoyale.core:setDisableReset(state)
-			self._isResetDisabled = state
+		function ObbyRoyale.core:setDisableReset(State)
+			self._isResetDisabled = State
 		end
 
-		function obbyRoyale.core:joinProServer()
-			if self._isJoiningPro then return interface:sendConsoleMessage("Join pro server...") end
+		function ObbyRoyale.core:joinProServer()
+			if self._isJoiningPro then return Interface:sendConsoleMessage("Join pro server...") end
 
 			self._isJoiningPro = true
 
-			interface:sendConsoleMessage("Join pro server...")
+			Interface:sendConsoleMessage("Join pro server...")
 
-			teleportService:Teleport(17205456753, localPlayer)
+			TeleportService:Teleport(17205456753, LocalPlayer)
 
-			local connection; connection = localPlayer.OnTeleport:Connect(function(teleportState)
-				if teleportState == Enum.TeleportState.Failed then
-					connection:Disconnect()
+			local Connection; Connection = LocalPlayer.OnTeleport:Connect(function(TeleportState)
+				if TeleportState == Enum.TeleportState.Failed then
+					Connection:Disconnect()
 
-					interface:sendConsoleMessage("Teleport failed!")
+					Interface:sendConsoleMessage("Teleport failed!")
 
 					self._isJoiningPro = false
 				end
 			end)
 		end
 
-		function obbyRoyale.core:rejoin()
-			if self._isRejoining or self._isServerhopping then return interface:sendConsoleMessage("Already rejoining") end 
+		function ObbyRoyale.core:rejoin()
+			if self._isRejoining or self._isServerhopping then return Interface:sendConsoleMessage("Already rejoining") end
 
-			self._isRejoining = true 
+			self._isRejoining = true
 
-			interface:sendConsoleMessage("Rejoining...")
+			Interface:sendConsoleMessage("Rejoining...")
 
-			teleportService:TeleportToPlaceInstance(placeId, jobId)
+			TeleportService:TeleportToPlaceInstance(PlaceId, JobId)
 
-			local connection; connection = localPlayer.OnTeleport:Connect(function(teleportState)
-				if teleportState == Enum.TeleportState.Failed then
-					connection:Disconnect()
+			local Connection; Connection = LocalPlayer.OnTeleport:Connect(function(TeleportState)
+				if TeleportState == Enum.TeleportState.Failed then
+					Connection:Disconnect()
 
-					interface:sendConsoleMessage("Teleport failed!")
+					Interface:sendConsoleMessage("Teleport failed!")
 
 					self._isRejoining = false
 				end
 			end)
 		end
 
-		function obbyRoyale.core:serverhop()
-			if not request then return interface:sendConsoleMessage("Your executor doesnt support requests!") end
+		function ObbyRoyale.core:serverhop()
+			if not request then return Interface:sendConsoleMessage("Your executor doesnt support requests!") end
 
-			if self._isServerhopping or self._isRejoining then return interface:sendConsoleMessage("Already serverhopping!") end
+			if self._isServerhopping or self._isRejoining then return Interface:sendConsoleMessage("Already serverhopping!") end
 
 			self._isServerhopping = true
 
-			interface:sendConsoleMessage("Searching for server...")
+			Interface:sendConsoleMessage("Searching for server...")
 
-			local result = request({Url =`https://games.roblox.com/v1/games/{game.PlaceId}/servers/Public?sortOrder=Desc&limit=100&excludeFullGames=true`})
+			local Result = request({Url =`https://games.roblox.com/v1/games/{game.PlaceId}/servers/Public?sortOrder=Desc&limit=100&excludeFullGames=true`})
 
-			local success, body = pcall(function()
-				return httpService:JSONDecode(result.Body)
+			local Success, Body = pcall(function()
+				return HttpService:JSONDecode(Result.Body)
 			end)
 
-			if success and body and body.data then
-				local servers = {}
+			if Success and Body and Body.data then
+				local Servers = {}
 
-				for _, server in body.data do
-					if typeof(server) == "table" and tonumber(server.playing) and tonumber(server.maxPlayers) and server.playing < server.maxPlayers and server.id ~= jobId then
-						table.insert(servers, 1, server.id)
+				for _, Server in Body.data do
+					if typeof(Server) == "table" and tonumber(Server.playing) and tonumber(Server.maxPlayers) and Server.playing < Server.maxPlayers and Server.id ~= JobId then
+						table.insert(Servers, 1, Server.id)
 					end
 				end
 
-				if #servers > 0 then
-					interface:sendConsoleMessage("Found server!")
+				if #Servers > 0 then
+					Interface:sendConsoleMessage("Found server!")
 
 					task.wait()
 
-					teleportService:TeleportToPlaceInstance(placeId, servers[rng:NextInteger(1, #servers)], localPlayer)
+					TeleportService:TeleportToPlaceInstance(PlaceId, Servers[Rng:NextInteger(1, #Servers)], LocalPlayer)
 
-					local connection; connection = localPlayer.OnTeleport:Connect(function(teleportState)
-						if teleportState == Enum.TeleportState.Failed then
-							connection:Disconnect()
+					local Connection; Connection = LocalPlayer.OnTeleport:Connect(function(TeleportState)
+						if TeleportState == Enum.TeleportState.Failed then
+							Connection:Disconnect()
 
-							interface:sendConsoleMessage("Teleport failed!")
+							Interface:sendConsoleMessage("Teleport failed!")
 						end
 					end)
 				else
-					interface:sendConsoleMessage("No servers available!")
+					Interface:sendConsoleMessage("No servers available!")
 				end
-			else 
-				interface:sendConsoleMessage("Error occured when searching for server!")
+			else
+				Interface:sendConsoleMessage("Error occured when searching for server!")
 			end
 
 			self._isServerhopping = false
@@ -1890,426 +2032,426 @@ do -- obby royale:
 	end
 
 	do -- loader:
-		function obbyRoyale:load()
-			self.autoPlayController:init()
+		function ObbyRoyale:load()
 			self.tasController:init()
+			self.autoPlayController:init()
 			--self.core:init()
 		end
 	end
 end
 
-do -- hooks:
-	do -- namecall hook:
-		local oldNamecall; oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
-			local args = {...}
-			local method = getnamecallmethod()
-
-			if method == "FireServer" and tostring(self) == "Load" then
-				local stageId = args[2]
-
-				if obbyRoyale.core._unlockedPracticeStages then 
-					obbyRoyale.tasController._stages[stageId]:Clone().Parent = playerGui.LoadedStage
-				end
-			elseif method == "FireServer" and tostring(self) == "Reset" and obbyRoyale.core._isResetDisabled then 
-				return
-			end
-
-			return oldNamecall(self, ...)
-		end))
-	end
+--[[
+for i,v in getconnections(game.Players.LocalPlayer.PlayerGui.LoadedStage.ChildAdded) do
+	v:Disable()  
 end
-do -- interface:
-	function interface:setStatus(status)
-		self._statusLabel.Text = `Status: {status}`
+
+local AdService = game:GetService("AdService")
+local RS = game:GetService("ReplicatedStorage")
+local LocalPlayer = game.Players.LocalPlayer
+
+local info = RS.Info.Stages
+local load = RS:WaitForChild("ServerCommunication"):WaitForChild("Requests"):WaitForChild("Practice"):WaitForChild("Load")
+local rewardedAdPractice = RS:WaitForChild("ServerCommunication"):WaitForChild("Events"):WaitForChild("Player"):WaitForChild("RewardedAdPractice")
+local getUnlocked = RS:WaitForChild("ServerCommunication"):WaitForChild("Requests"):WaitForChild("Practice"):WaitForChild("GetUnlocked")
+
+local DIFFICULTY_ORDER = {
+	"Effortless",
+	"VeryEasy",
+	"Easy",
+	"Medium",
+	"Hard",
+	"Difficult",
+	"Challenging",
+	"Intense",
+	"Insane",
+	"Extreme",
+	"Nightmare",
+	"Hell",
+	"Demon",
+	"Master"
+}
+
+local PRICES = {
+	Effortless  = { Price = 0,  FreeVIP = true  },
+	VeryEasy    = { Price = 0,  FreeVIP = true  },
+	Easy        = { Price = 0,  FreeVIP = true  },
+	Medium      = { Price = 29, FreeVIP = true  },
+	Hard        = { Price = 29, FreeVIP = true  },
+	Difficult   = { Price = 39, FreeVIP = true  },
+	Challenging = { Price = 39, FreeVIP = true  },
+	Intense     = { Price = 49, FreeVIP = true  },
+	Insane      = { Price = 49, FreeVIP = true  },
+	Extreme     = { Price = 69, FreeVIP = true  },
+	Nightmare   = { Price = 79, FreeVIP = false },
+	Hell        = { Price = 89, FreeVIP = false },
+	Demon       = { Price = 99, FreeVIP = false },
+	Master      = { Price = 99, FreeVIP = false },
+}
+
+local TIMEOUT = 30
+
+print("[StageLoader] Fetching unlocked difficulties...")
+local unlockedDiffs = getUnlocked:InvokeServer()
+print("[StageLoader] Unlocked:", table.concat(unlockedDiffs, ", "))
+
+local isVIP = LocalPlayer.Data:GetAttribute("IsVIP")
+print("[StageLoader] IsVIP:", isVIP)
+
+local function isAdAvailable()
+	local ok, result = pcall(function()
+		return AdService:GetAdAvailabilityNowAsync(Enum.AdFormat.RewardedVideo)
+	end)
+	if not ok then
+		print("[StageLoader] Ad availability check error:", result)
+		return false
 	end
+	print("[StageLoader] Ad result:", result.AdAvailabilityResult)
+	return result.AdAvailabilityResult == Enum.AdAvailabilityResult.IsAvailable
+end
 
-	function interface:setStage(stageId)
-		setthreadidentity(8)
+local function isDifficultyUnlocked(name)
+	local p = PRICES[name]
+	if not p or p.Price == 0 then return true end
+	return table.find(unlockedDiffs, name) or (isVIP and p.FreeVIP)
+end
 
-		self._stageLabel.Text = `Stage: {stageId} | {obbyRoyale.tasController:getStageDifficulty(stageId)}`
-	end
+local modules = {}
+local function GetModule(name)
+	if modules[name] then return modules[name] end
+	modules[name] = require(info[name])
+	return modules[name]
+end
 
-	function interface:sendConsoleMessage(text)
-		self._console:AppendText(`Window -> {text}`)
-	end
+local TEMP = workspace:FindFirstChild("Stages") or Instance.new("Folder")
+TEMP.Name = "Stages"
+TEMP.Parent = workspace
 
-	function interface:createConsole()
-		local window = reGui:Window({
-			Title = "Console",
-			Size = UDim2.new(0, 350, 0, 215),
-			NoScroll = true,
-			Theme = "Normal",
-		})
+local totalLoaded = 0
+local totalSkipped = 0
 
-		self._consoleWindow = window
+print("[StageLoader] Starting stage load...")
 
-		local console = window:Console({
-			Enabled = true,
-			ReadOnly = true,
-		})
+for _, name in DIFFICULTY_ORDER do
+	local unlocked = isDifficultyUnlocked(name)
 
-		window:Button({
-			Text = "Clear",
-			Callback = function() console:Clear() end
-		})
-
-		self._console = console
-	end
-
-	function interface:createWindow()
-		local window = reGui:TabsWindow({
-			Title = placeName,
-			Size = UDim2.fromOffset(600, 400),
-			Theme = "Normal",
-		}):Center()
-
-		self._window = window
-	end
-
-	function interface:createTab()
-        local tabs = {
-            ["main"] = {
-                name = "Main",
-            },
-            ["credits"] = {
-                name = "Credits",
-            },
-        }
-
-        for tabName, tabData in tabs do
-            local tab = self._window:CreateTab({ Name = tabData.name })
-
-            local list = tab:List({
-                HorizontalFlex = Enum.UIFlexAlignment.Fill,
-                UiPadding = 1,
-                Spacing = 10
-            })
-
-            self._tabs[tabName] = list
-        end
-    end
-
-	function interface:createRegions()
-		local regions = {
-            ["main"] = {
-                ["tas"] = {
-                    title = "TAS Creator",
-                },
-                ["autoPlay"] = {
-                    title = "Auto Play",
-                },
-                ["miscellaneous"] = {
-                    title = "Miscellaneous",
-                },
-            },
-            ["credits"] = {
-                ["info"] = {
-                    title = "Credits",
-                },
-            },
-        }
-
-		for tabName, tabData in regions do
-			if not self._regions[tabName] then self._regions[tabName] = {} end
-
-			for regionName, regionData in tabData do
-				local region = self._tabs[tabName]:Region({
-					Border = true,
-					BorderColor = self._window:GetThemeKey("Border"),
-					BorderThickness = 1,
-					CornerRadius = UDim.new(0, 5),
-				})
-
-				region:Label({ Text = regionData.title })
-
-				self._regions[tabName][regionName] = region
-			end
+	if not unlocked then
+		print("[StageLoader] Checking ad availability for locked difficulty:", name)
+		if not isAdAvailable() then
+			print("[StageLoader] Skipping difficulty (locked, no ad):", name)
+			totalSkipped += 1
+			continue
 		end
 	end
 
-	function interface:createPopup(stageId)
+	local stageList = GetModule(name)
+	print(string.format("[StageLoader] Difficulty: %s | Unlocked: %s | Stages: %d", name, tostring(unlocked), #stageList))
+
+	for _, stageInfo in stageList do
+		local thread = coroutine.running()
+		local timedOut = false
+
+		local connection
+		connection = LocalPlayer.PlayerGui.LoadedStage.ChildAdded:Connect(function(desc)
+			print(string.format("[StageLoader] ChildAdded fired: %s (waiting for stage %s)", desc.Name, stageInfo.ID))
+			if timedOut then
+				print("[StageLoader] ChildAdded fired but already timed out, ignoring")
+				return
+			end
+			connection:Disconnect()
+			task.wait()
+			desc.Name = stageInfo.ID
+			desc.Parent = TEMP
+			print(string.format("[StageLoader] Moved %s → Stages.%s", desc.Name, stageInfo.ID))
+			coroutine.resume(thread)
+		end)
+
+		if unlocked then
+			print(string.format("[StageLoader] Loading stage %s (%s)", stageInfo.ID, name))
+			load:FireServer(stageInfo.ID)
+		else
+			if not isAdAvailable() then
+				print(string.format("[StageLoader] No ad available for stage %s, skipping difficulty %s", stageInfo.ID, name))
+				timedOut = true
+				connection:Disconnect()
+				totalSkipped += 1
+				break
+			end
+			print(string.format("[StageLoader] Loading stage %s (%s) via ad", stageInfo.ID, name))
+			rewardedAdPractice:FireServer(stageInfo.ID)
+		end
+
+		coroutine.yield()
+
+		if not timedOut then
+			totalLoaded += 1
+			print(string.format("[StageLoader] Saved stage %s → Stages.%s (total: %d)", stageInfo.ID, stageInfo.ID, totalLoaded))
+		end
+	end
+end
+
+print(string.format("[StageLoader] Done. Loaded: %d | Skipped: %d", totalLoaded, totalSkipped))
+]]
+
+do -- hooks:
+	do -- namecall hook:
+		local OldNamecall; OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+			local Args = {...}
+			local Method = getnamecallmethod()
+
+			if Method == "FireServer" and tostring(self) == "Load" then 
+				local StageId = Args[1]
+
+				if ObbyRoyale.core._unlockedPracticeStages then
+					ObbyRoyale.tasController._stages:FindFirstChild(StageId):Clone().Parent = PlayerGui.LoadedStage
+				end
+			elseif Method == "FireServer" and tostring(self) == "Reset" and ObbyRoyale.core._isResetDisabled then
+				return
+			end
+
+			return OldNamecall(self, ...)
+		end))
+	end
+end
+do -- Interface:
+	function Interface:setStatus(Status)
+		-- StatusLabel:SetValue(`Status: {Status}`)
+	end
+
+	function Interface:setStage(StageId)
+		--setthreadidentity(8)
+		-- StageLabel:SetValue(`Stage: {StageId} | {ObbyRoyale.tasController:getStageDifficulty(StageId)}`)
+	end
+
+	function Interface:sendConsoleMessage(Text)
+		Library:Notify{
+			Title = "Console",
+			Content = `Window -> {Text}`,
+			Duration = 5,
+		}
+	end
+
+	function Interface:createWindow()
+		local Window = Library:CreateWindow{
+			Title = "Obby Royale TAS",
+			TabWidth = 160,
+			Size = UDim2.fromOffset(580, 460),
+			Acrylic = true,
+			Theme = "Dark",
+			MinimizeKey = Enum.KeyCode.LeftControl,
+		}
+
+		self._window = Window
+	end
+
+	function Interface:createTabs()
+		self._tabs["main"] = self._window:CreateTab{ Title = "Auto Play", Icon = "play" }
+		self._tabs["misc"] = self._window:CreateTab{ Title = "Misc", Icon = "wrench" }
+		self._tabs["credits"] = self._window:CreateTab{ Title = "Credits", Icon = "info" }
+		self._tabs["settings"] = self._window:CreateTab{ Title = "Settings", Icon = "settings" }
+	end
+
+	function Interface:createPopup(StageId)
 		setthreadidentity(8)
 
-		local modalWindow = self._window:PopupModal({
-			Title = placeName,
-			AutoSize = "Y"
-		})
-		self._modalWindow = modalWindow
-
-		modalWindow:Label({
-			Text = `Are you sure you would like to restart?`,
-		})
-
-		modalWindow:Separator()
-
-		local row = modalWindow:Row({
-			Expanded = true
-		})
-
-		row:Button({
-			Text = "Yes",
-			Callback = function()
-				task.spawn(obbyRoyale.tasController.setupTAS, obbyRoyale.tasController, stageId)
-
-				setthreadidentity(8)
-
-				modalWindow:ClosePopup()
-			end,
-		})
-
-		row:Button({
-			Text = "No",
-			Callback = function()
-				modalWindow:ClosePopup()
-			end,
-		})
+		self._window:Dialog{
+			Title = PlaceName,
+			Content = "Are you sure you would like to restart?",
+			Buttons = {
+				{
+					Title = "Yes",
+					Callback = function()
+						task.spawn(ObbyRoyale.tasController.setupTAS, ObbyRoyale.tasController, StageId)
+					end,
+				},
+				{
+					Title = "No",
+					Callback = function() end,
+				},
+			},
+		}
 	end
 
-	function interface:setupAutoPlayRegion()
-		local autoPlayRegion = self._regions["main"]["autoPlay"]
+	function Interface:setupAutoPlayRegion()
+		local Tab = self._tabs["main"]
 
-		autoPlayRegion:Checkbox({
-			Label = "Enabled",
-			Value = false,
-			Callback = function(_, value)
-				obbyRoyale.autoPlayController:setEnabled(value)
-			end
-		})
-
-		autoPlayRegion:Button({
-			Text = "Force Stop",
-			Callback = function() obbyRoyale.autoPlayController:stopAutoPlay() end,
-		})
-
-		autoPlayRegion:Button({
-			Text = "Play Again",
-			Callback = function() 
-				obbyRoyale.autoPlayController:stopAutoPlay() 		
-				task.wait() 		
-				obbyRoyale.autoPlayController:startAutoPlay() 
+		Tab:CreateToggle("AutoPlayEnabled", {
+			Title = "Auto Play",
+			Default = false,
+			Callback = function(Value)
+				ObbyRoyale.autoPlayController:setEnabled(Value)
 			end,
 		})
-	end
 
-	function interface:setupTASRegion()
-		local tasRegion = self._regions["main"]["tas"]
-
-		tasRegion:Button({
-			Text = "Select Stage",
-			Callback = function() obbyRoyale.tasController:selectStage() end,
-		})
-
-		--[[
-		tasRegion:Button({
-			Text = "Select Next",
-			Callback = function() obbyRoyale.tasController:selectNextStage() end,
-		})
-		--]]
-
-		tasRegion:Button({
-			Text = "Stop Selecting",
-			Callback = function() obbyRoyale.tasController:stopSelectingStage() end,
-		})
-
-		tasRegion:Separator()
-
-		local stageLabel = tasRegion:Label({
-			Text = "Stage: Nothing Selected",
-		})
-		self._stageLabel = stageLabel
-
-		local statusLabel = tasRegion:Label({
-			Text = "Status: Not recording",
-		})
-		self._statusLabel = statusLabel
-
-		tasRegion:Keybind({
-			Label = "Start Recording",
-			Value = Enum.KeyCode.E,
+		Tab:CreateButton{
+			Title = "Force Stop",
 			Callback = function()
-				if not obbyRoyale.tasController._isTASSING or tas.core._isRecording then return end
+				ObbyRoyale.autoPlayController:stopAutoPlay()
+			end,
+		}
 
-				if obbyRoyale.tasController._loadedStage then 
-					obbyRoyale.tasController:setupTAS(obbyRoyale.tasController._loadedStage, true)
-				end
-
+		Tab:CreateButton{
+			Title = "Play Again",
+			Callback = function()
+				ObbyRoyale.autoPlayController:stopAutoPlay()
 				task.wait()
-
-				tas.core:startRecording()
+				ObbyRoyale.autoPlayController:startAutoPlay()
 			end,
-		})
+		}
 
-		tasRegion:Keybind({
-			Label = "Stop Recording",
-			Value = Enum.KeyCode.Q,
+		Tab:CreateButton{
+			Title = "Replay Practice",
 			Callback = function()
-				if not obbyRoyale.tasController._isTASSING then return end
-
-				tas.core:stopRecording()
+				if ObbyRoyale.autoPlayController._isAutoPlayEnabled then return end
+				ObbyRoyale.autoPlayController:startPracticeAutoPlay()
 			end,
-		})
+		}
 
-		tasRegion:Keybind({
-			Label = "Start Replaying",
-			Value = Enum.KeyCode.U,
-			Callback = function()
-				if not obbyRoyale.tasController._isTASSING then return end
-
-				tas.core:startReplaying(tas.core._recordingFrames, true) -- obbyRoyale.tasController._loadedStage
-			end,
-		})
-
-		tasRegion:Keybind({
-			Label = "Stop Replaying",
-			Value = Enum.KeyCode.I,
-			Callback = function()
-				if not obbyRoyale.tasController._isTASSING then return end
-
-				tas.core:stopReplaying()
-			end,
-		})
-
-		tasRegion:Keybind({
-			Label = "Freeze",
-			Value = Enum.KeyCode.F,
-			Callback = function()
-				tas.core:freeze()
-			end,
-		})
-
-		tasRegion:Keybind({
-			Label = "Go Back",
-			Value = Enum.KeyCode.T,
-			Callback = function(_, keyCode)
-				tas.core:setBackKeybind(keyCode)
-			end,
-		})
-
-		tasRegion:Keybind({
-			Label = "Go Forward",
-			Value = Enum.KeyCode.Y,
-			Callback = function(_, keyCode)
-				tas.core:setForwardKeybind(keyCode)
-			end,
-		})
-
-		tasRegion:Keybind({
-			Label = "Save Recording",
-			Value = Enum.KeyCode.P,
-			Callback = function()
-				tas.core:saveToFile(obbyRoyale.tasController._loadedStage)
+		Tab:CreateToggle("UseAllInputs", {
+			Title = "Use All Inputs",
+			Default = false,
+			Callback = function(Value)
+				Tas.core._isUsingAllReplay = Value
 			end,
 		})
 	end
 
-	function interface:setupMiscRegion()
-		local miscRegion = self._regions["main"]["miscellaneous"]
+	--[==[
+	function Interface:setupTASRegion()
+		local Tab = self._tabs["main"]
 
-		miscRegion:Button({
-			Text = "Unlock Practice Stages",
-			Callback = function() obbyRoyale.core:unlockPracticeStages() end,
-		})
+		Tab:CreateButton{ Title = "Select Stage", Callback = function() ObbyRoyale.tasController:selectStage() end }
+		Tab:CreateButton{ Title = "Stop Selecting", Callback = function() ObbyRoyale.tasController:stopSelectingStage() end }
 
-		miscRegion:Checkbox({
-			Label = "Disable Reset",
-			Value = false,
-			Callback = function(_, value)
-				obbyRoyale.autoPlayController:setEnabled(value)
-			end
-		})
-
-		miscRegion:Separator()
-
-		miscRegion:Button({
-			Text = "Join Pro Server",
-			Callback = function() obbyRoyale.core:joinProServer() end,
-		})
-
-		miscRegion:Button({
-			Text = "Rejoin",
-			Callback = function() obbyRoyale.core:rejoin() end,
-		})
-
-		miscRegion:Button({
-			Text = "Serverhop",
-			Callback = function() obbyRoyale.core:serverhop() end,
-		})
-
-		miscRegion:Separator()
-
-		miscRegion:Button({
-			Text = "Anti AFK",
-			Callback = function() for _, v in getconnections(localPlayer.Idled) do v:Disable() end end,
-		})
-
-		miscRegion:Keybind({
-			Label = "Show/Hide GUI",
-			Value = Enum.KeyCode.RightShift,
+		Tab:CreateKeybind("StartRecordingKey", { Title = "Start Recording", Default = "E", Mode = "Hold",
 			Callback = function()
-				local state = not self._window.Visible
-
-				self._window:SetVisible(state)
-				self._consoleWindow:SetVisible(state)
+				if not ObbyRoyale.tasController._isTASSING or Tas.core._isRecording then return end
+				if ObbyRoyale.tasController._loadedStage then
+					ObbyRoyale.tasController:setupTAS(ObbyRoyale.tasController._loadedStage, true)
+				end
+				task.wait()
+				Tas.core:startRecording()
 			end,
+		})
+		Tab:CreateKeybind("StopRecordingKey", { Title = "Stop Recording", Default = "Q", Mode = "Hold",
+			Callback = function()
+				if not ObbyRoyale.tasController._isTASSING then return end
+				Tas.core:stopRecording()
+			end,
+		})
+		Tab:CreateKeybind("StartReplayingKey", { Title = "Start Replaying", Default = "U", Mode = "Hold",
+			Callback = function()
+				if not ObbyRoyale.tasController._isTASSING then return end
+				Tas.core:startReplaying(Tas.core._recordingFrames, true)
+			end,
+		})
+		Tab:CreateKeybind("StopReplayingKey", { Title = "Stop Replaying", Default = "I", Mode = "Hold",
+			Callback = function()
+				if not ObbyRoyale.tasController._isTASSING then return end
+				Tas.core:stopReplaying()
+			end,
+		})
+		Tab:CreateKeybind("FreezeKey", { Title = "Freeze", Default = "F", Mode = "Hold",
+			Callback = function() Tas.core:freeze() end,
+		})
+		Tab:CreateKeybind("GoBackKey", { Title = "Go Back", Default = "T", Mode = "Hold",
+			ChangedCallback = function(New) Tas.core:setBackKeybind(New) end,
+		})
+		Tab:CreateKeybind("GoForwardKey", { Title = "Go Forward", Default = "Y", Mode = "Hold",
+			ChangedCallback = function(New) Tas.core:setForwardKeybind(New) end,
+		})
+		Tab:CreateKeybind("SaveRecordingKey", { Title = "Save Recording", Default = "P", Mode = "Hold",
+			Callback = function() Tas.core:saveToFile(ObbyRoyale.tasController._loadedStage) end,
+		})
+	end
+	--]==]
+
+	function Interface:setupMiscRegion()
+		local Tab = self._tabs["misc"]
+
+		Tab:CreateButton{
+			Title = "Unlock Practice Stages",
+			Callback = function()
+				ObbyRoyale.core:unlockPracticeStages()
+			end,
+		}
+
+		Tab:CreateToggle("DisableReset", {
+			Title = "Disable Reset",
+			Default = false,
+			Callback = function(Value)
+				ObbyRoyale.core:setDisableReset(Value)
+			end,
+		})
+
+		Tab:CreateButton{
+			Title = "Join Pro Server",
+			Callback = function()
+				ObbyRoyale.core:joinProServer()
+			end,
+		}
+
+		Tab:CreateButton{
+			Title = "Rejoin",
+			Callback = function()
+				ObbyRoyale.core:rejoin()
+			end,
+		}
+
+		Tab:CreateButton{
+			Title = "Serverhop",
+			Callback = function()
+				ObbyRoyale.core:serverhop()
+			end,
+		}
+
+		Tab:CreateButton{
+			Title = "Anti AFK",
+			Callback = function()
+				local VirtualUser = game:GetService("VirtualUser")
+				LocalPlayer.Idled:Connect(function()
+					VirtualUser:CaptureController()
+					VirtualUser:ClickButton2(Vector2.new())
+				end)
+			end,
+		}
+	end
+
+	function Interface:setupCreditsRegion()
+		local Tab = self._tabs["credits"]
+
+		Tab:CreateParagraph("Credits", {
+			Title = "Credits",
+			Content = "Main Developer: Killa0731\nOther: Tasability for most of the TAS functionality",
 		})
 	end
 
-    function interface:setupCreditsRegion()
-        local creditsRegion = self._regions["credits"]["info"]
+	function Interface:setupSettingsRegion()
+		local SettingsTab = self._tabs["settings"]
 
-        creditsRegion:Label({
-            Text = "Main Developer: Killa0731",
-        })
+		InterfaceManager:SetLibrary(Library)
+		SaveManager:SetLibrary(Library)
 
-        creditsRegion:Label({
-            Text = "Other: Tasability for most of the TAS functionality",
-        })
-    end
+		SaveManager:IgnoreThemeSettings()
+		SaveManager:SetIgnoreIndexes{ "MenuKeybind" }
 
-	function interface:load()
-		reGui:Init({ Prefabs = insertService:LoadLocalAsset(`rbxassetid://{reGui.PrefabsId}`) })
-		reGui:DefineTheme("Normal", {
-			TitleAlign = Enum.TextXAlignment.Center,
-			TextDisabled = Color3.fromRGB(120, 100, 120),
-			Text = Color3.fromRGB(200, 180, 200),
+		InterfaceManager:SetFolder("ObbyRoyale")
+		SaveManager:SetFolder("ObbyRoyale")
 
-			FrameBg = Color3.fromRGB(25, 20, 25),
-			FrameBgTransparency = 0.4,
-			FrameBgActive = Color3.fromRGB(120, 100, 120),
-			FrameBgTransparencyActive = 0.4,
+		InterfaceManager:BuildInterfaceSection(SettingsTab)
+		SaveManager:BuildConfigSection(SettingsTab)
+			
+		self._window:SelectTab(1)
 
-			CheckMark = Color3.fromRGB(150, 100, 150),
-			SliderGrab = Color3.fromRGB(150, 100, 150),
-			ButtonsBg = Color3.fromRGB(150, 100, 150),
-			CollapsingHeaderBg = Color3.fromRGB(150, 100, 150),
-			CollapsingHeaderText = Color3.fromRGB(200, 180, 200),
-			RadioButtonHoveredBg = Color3.fromRGB(150, 100, 150),
+		SaveManager:LoadAutoloadConfig()
+	end
 
-			WindowBg = Color3.fromRGB(35, 30, 35),
-			TitleBarBg = Color3.fromRGB(35, 30, 35),
-			TitleBarBgActive = Color3.fromRGB(50, 45, 50),
-
-			Border = Color3.fromRGB(50, 45, 50),
-			ResizeGrab = Color3.fromRGB(50, 45, 50),
-			RegionBgTransparency = 1,
-		})
-
+	function Interface:load()
 		self:createWindow()
-		self:createTab()
-		self:createRegions()
+		self:createTabs()
+		self:setupCreditsRegion()
 		self:setupAutoPlayRegion()
-		self:setupTASRegion()
 		self:setupMiscRegion()
-        self:setupCreditsRegion()
-		self:createConsole()
-
-		self._createPopup.Event:Connect(function(stageId)
-			if tas.core:getFile(stageId) then 
-				self:createPopup(stageId)
-			else 
-				obbyRoyale.tasController:setupTAS(stageId)
-			end
-		end)
+		self:setupSettingsRegion()
 
 		getgenv().onExecuted = function()
 			self:sendConsoleMessage("Do not execute twice!")
@@ -2318,11 +2460,11 @@ do -- interface:
 end
 
 do -- main loader:
-	interface:load()
-	tas:load()
-	obbyRoyale:load()
+	Interface:load()
+	Tas:load()
+	ObbyRoyale:load()
 
-	tas.core:syncTASFiles()
+	Tas.core:syncTASFiles()
 
-	interface:sendConsoleMessage("Script successfully loaded!")
+	Interface:sendConsoleMessage("Script successfully loaded!")
 end
