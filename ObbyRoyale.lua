@@ -1,4 +1,3 @@
-
 if getgenv().hasExecuted then getgenv().onExecuted() return end
 
 getgenv().hasExecuted = true
@@ -1485,73 +1484,61 @@ end
 end
 
 
+-- Top-level so all do-blocks (including Interface) can access it
+local function ResolveId(Stage)
+	local function ResolveMainModel(Model)
+		if Model:GetAttribute("StageNum") then
+			return Model
+		elseif Model:FindFirstChildWhichIsA("Model") and Model:FindFirstChildWhichIsA("Model"):GetAttribute("StageNum") then
+			return Model:FindFirstChildWhichIsA("Model")
+		end
+		return nil
+	end
+
+	local MainModel = ResolveMainModel(Stage)
+	if not MainModel then
+		warn("Didnt find main model")
+		return
+	end
+
+	local ID = MainModel:GetAttribute("ID") or Stage:GetAttribute("ID")
+	if ID then
+		return ID
+	end
+
+	local StageNum = MainModel:GetAttribute("StageNum")
+	if not StageNum then
+		warn("Failed to get stage num")
+		return
+	end
+
+	local Difficulty = MainModel:GetAttribute("Difficulty")
+	if not Difficulty then
+		warn("Failed to get difficulty")
+		return
+	end
+
+	local PartCount = MainModel:GetAttribute("PartCount")
+	if not PartCount then
+		warn("Failed to get part count")
+		return
+	end
+
+	for _, StageModel in ObbyRoyale.tasController:getStages():GetChildren() do
+		local Model = ResolveMainModel(StageModel)
+		if not Model then continue end
+		if Model:GetAttribute("Difficulty") ~= Difficulty then continue end
+		if Model:GetAttribute("StageNum") ~= StageNum then continue end
+		if Model:GetAttribute("PartCount") ~= PartCount then continue end
+		return StageModel:GetAttribute("ID") or StageModel.Name
+	end
+
+	return nil
+end
+
 do -- obby royale:
 
 	do -- autoPlayController:
-		local function ResolveId(Stage)
-			local function ResolveMainModel(Model)
-				if Model:GetAttribute("StageNum") then 
-					return Model 
-				elseif Model:FindFirstChildWhichIsA("Model") and Model:FindFirstChildWhichIsA("Model"):GetAttribute("StageNum") then 
-					return Model:FindFirstChildWhichIsA("Model")
-				end
-				return nil
-			end
-
-			local MainModel = ResolveMainModel(Stage)
-			if not MainModel then
-				warn("Didnt find main model")
-				return
-			end
-
-			local ID = MainModel:GetAttribute("ID") or Stage:GetAttribute("ID") 
-			if ID then 
-				return ID
-			end
-
-			local StageNum = MainModel:GetAttribute("StageNum")
-			if not StageNum then 
-				warn("Failed to get stage num")
-				return 
-			end
-
-			local Difficulty = MainModel:GetAttribute("Difficulty") 
-			if not Difficulty then 
-				warn("Failed to get difficulty")
-				return
-			end
-
-			local PartCount = MainModel:GetAttribute("PartCount") 
-			if not PartCount then 
-				warn("Failed to get part count")
-				return
-			end
-
-			for _, StageModel in ObbyRoyale.tasController:getStages():GetChildren() do 
-				local Model = ResolveMainModel(StageModel)
-				if not Model then 
-					continue 
-				end
-
-				if Model:GetAttribute("Difficulty") ~= Difficulty then 
-					continue 
-				end
-
-				if Model:GetAttribute("StageNum") ~= StageNum then 
-					continue
-				end
-
-				if Model:GetAttribute("PartCount") ~= PartCount then 
-					continue 
-				end
-
-				return StageModel:GetAttribute("ID") or StageModel.Name
-			end
-
-			return nil
-		end
-
-
 		function ObbyRoyale.autoPlayController:setEnabled(State)
 			self._isAutoPlayEnabled = State
 		end
@@ -2040,158 +2027,6 @@ do -- obby royale:
 	end
 end
 
---[[
-for i,v in getconnections(game.Players.LocalPlayer.PlayerGui.LoadedStage.ChildAdded) do
-	v:Disable()  
-end
-
-local AdService = game:GetService("AdService")
-local RS = game:GetService("ReplicatedStorage")
-local LocalPlayer = game.Players.LocalPlayer
-
-local info = RS.Info.Stages
-local load = RS:WaitForChild("ServerCommunication"):WaitForChild("Requests"):WaitForChild("Practice"):WaitForChild("Load")
-local rewardedAdPractice = RS:WaitForChild("ServerCommunication"):WaitForChild("Events"):WaitForChild("Player"):WaitForChild("RewardedAdPractice")
-local getUnlocked = RS:WaitForChild("ServerCommunication"):WaitForChild("Requests"):WaitForChild("Practice"):WaitForChild("GetUnlocked")
-
-local DIFFICULTY_ORDER = {
-	"Effortless",
-	"VeryEasy",
-	"Easy",
-	"Medium",
-	"Hard",
-	"Difficult",
-	"Challenging",
-	"Intense",
-	"Insane",
-	"Extreme",
-	"Nightmare",
-	"Hell",
-	"Demon",
-	"Master"
-}
-
-local PRICES = {
-	Effortless  = { Price = 0,  FreeVIP = true  },
-	VeryEasy    = { Price = 0,  FreeVIP = true  },
-	Easy        = { Price = 0,  FreeVIP = true  },
-	Medium      = { Price = 29, FreeVIP = true  },
-	Hard        = { Price = 29, FreeVIP = true  },
-	Difficult   = { Price = 39, FreeVIP = true  },
-	Challenging = { Price = 39, FreeVIP = true  },
-	Intense     = { Price = 49, FreeVIP = true  },
-	Insane      = { Price = 49, FreeVIP = true  },
-	Extreme     = { Price = 69, FreeVIP = true  },
-	Nightmare   = { Price = 79, FreeVIP = false },
-	Hell        = { Price = 89, FreeVIP = false },
-	Demon       = { Price = 99, FreeVIP = false },
-	Master      = { Price = 99, FreeVIP = false },
-}
-
-local TIMEOUT = 30
-
-print("[StageLoader] Fetching unlocked difficulties...")
-local unlockedDiffs = getUnlocked:InvokeServer()
-print("[StageLoader] Unlocked:", table.concat(unlockedDiffs, ", "))
-
-local isVIP = LocalPlayer.Data:GetAttribute("IsVIP")
-print("[StageLoader] IsVIP:", isVIP)
-
-local function isAdAvailable()
-	local ok, result = pcall(function()
-		return AdService:GetAdAvailabilityNowAsync(Enum.AdFormat.RewardedVideo)
-	end)
-	if not ok then
-		print("[StageLoader] Ad availability check error:", result)
-		return false
-	end
-	print("[StageLoader] Ad result:", result.AdAvailabilityResult)
-	return result.AdAvailabilityResult == Enum.AdAvailabilityResult.IsAvailable
-end
-
-local function isDifficultyUnlocked(name)
-	local p = PRICES[name]
-	if not p or p.Price == 0 then return true end
-	return table.find(unlockedDiffs, name) or (isVIP and p.FreeVIP)
-end
-
-local modules = {}
-local function GetModule(name)
-	if modules[name] then return modules[name] end
-	modules[name] = require(info[name])
-	return modules[name]
-end
-
-local TEMP = workspace:FindFirstChild("Stages") or Instance.new("Folder")
-TEMP.Name = "Stages"
-TEMP.Parent = workspace
-
-local totalLoaded = 0
-local totalSkipped = 0
-
-print("[StageLoader] Starting stage load...")
-
-for _, name in DIFFICULTY_ORDER do
-	local unlocked = isDifficultyUnlocked(name)
-
-	if not unlocked then
-		print("[StageLoader] Checking ad availability for locked difficulty:", name)
-		if not isAdAvailable() then
-			print("[StageLoader] Skipping difficulty (locked, no ad):", name)
-			totalSkipped += 1
-			continue
-		end
-	end
-
-	local stageList = GetModule(name)
-	print(string.format("[StageLoader] Difficulty: %s | Unlocked: %s | Stages: %d", name, tostring(unlocked), #stageList))
-
-	for _, stageInfo in stageList do
-		local thread = coroutine.running()
-		local timedOut = false
-
-		local connection
-		connection = LocalPlayer.PlayerGui.LoadedStage.ChildAdded:Connect(function(desc)
-			print(string.format("[StageLoader] ChildAdded fired: %s (waiting for stage %s)", desc.Name, stageInfo.ID))
-			if timedOut then
-				print("[StageLoader] ChildAdded fired but already timed out, ignoring")
-				return
-			end
-			connection:Disconnect()
-			task.wait()
-			desc.Name = stageInfo.ID
-			desc.Parent = TEMP
-			print(string.format("[StageLoader] Moved %s → Stages.%s", desc.Name, stageInfo.ID))
-			coroutine.resume(thread)
-		end)
-
-		if unlocked then
-			print(string.format("[StageLoader] Loading stage %s (%s)", stageInfo.ID, name))
-			load:FireServer(stageInfo.ID)
-		else
-			if not isAdAvailable() then
-				print(string.format("[StageLoader] No ad available for stage %s, skipping difficulty %s", stageInfo.ID, name))
-				timedOut = true
-				connection:Disconnect()
-				totalSkipped += 1
-				break
-			end
-			print(string.format("[StageLoader] Loading stage %s (%s) via ad", stageInfo.ID, name))
-			rewardedAdPractice:FireServer(stageInfo.ID)
-		end
-
-		coroutine.yield()
-
-		if not timedOut then
-			totalLoaded += 1
-			print(string.format("[StageLoader] Saved stage %s → Stages.%s (total: %d)", stageInfo.ID, stageInfo.ID, totalLoaded))
-		end
-	end
-end
-
-print(string.format("[StageLoader] Done. Loaded: %d | Skipped: %d", totalLoaded, totalSkipped))
-]]
-
 do -- hooks:
 	do -- namecall hook:
 		local OldNamecall; OldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
@@ -2212,6 +2047,7 @@ do -- hooks:
 		end))
 	end
 end
+
 do -- Interface:
 	function Interface:setStatus(Status)
 		-- StatusLabel:SetValue(`Status: {Status}`)
@@ -2237,7 +2073,7 @@ do -- Interface:
 			Size = UDim2.fromOffset(580, 460),
 			Acrylic = true,
 			Theme = "Dark",
-			MinimizeKey = Enum.KeyCode.LeftControl,
+			MinimizeKey = Enum.KeyCode.RightShift,
 		}
 
 		self._window = Window
@@ -2292,9 +2128,21 @@ do -- Interface:
 		Tab:CreateButton{
 			Title = "Play Again",
 			Callback = function()
+				local Stage = workspace.Arena.Stages:FindFirstChild(LocalPlayer.Name)
+				if not Stage then
+					Interface:sendConsoleMessage("No active stage found!")
+					return
+				end
+
+				local StageId = ResolveId(Stage)
+				if not StageId then
+					Interface:sendConsoleMessage("Failed to resolve stage ID!")
+					return
+				end
+
 				ObbyRoyale.autoPlayController:stopAutoPlay()
-				task.wait()
-				ObbyRoyale.autoPlayController:startAutoPlay()
+				task.wait(0.1)
+				ObbyRoyale.autoPlayController:startAutoPlay(StageId)
 			end,
 		}
 
@@ -2401,6 +2249,119 @@ do -- Interface:
 			Title = "Serverhop",
 			Callback = function()
 				ObbyRoyale.core:serverhop()
+			end,
+		}
+
+		Tab:CreateButton{
+			Title = "Inf Jump",
+			Callback = function()
+				local gui = Instance.new("ScreenGui")
+				gui.Name = "DraggableGUI"
+				gui.ResetOnSpawn = false
+				gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+				local frame = Instance.new("Frame")
+				frame.Name = "DraggableFrame"
+				frame.Size = UDim2.new(0, 200, 0, 100)
+				frame.Position = UDim2.new(0, 100, 0, 100)
+				frame.BackgroundTransparency = 0.4
+				frame.BackgroundColor3 = Color3.new(0, 0, 0)
+				frame.BorderSizePixel = 0
+				frame.Active = true
+				frame.Draggable = true
+				frame.Parent = gui
+
+				local button = Instance.new("TextButton")
+				button.Name = "InfJumpButton"
+				button.Size = UDim2.new(0.8, 0, 0, 30)
+				button.Position = UDim2.new(0.1, 0, 0.5, -15)
+				button.BackgroundColor3 = Color3.new(0, 0.5, 1)
+				button.Font = Enum.Font.SourceSans
+				button.TextColor3 = Color3.new(1, 1, 1)
+				button.TextSize = 14
+				button.Text = "InfJump"
+				button.Parent = frame
+
+				local label = Instance.new("TextLabel")
+				label.Name = "CreatorLabel"
+				label.Size = UDim2.new(0, 200, 0, 20)
+				label.Position = UDim2.new(0, 0, 0, -20)
+				label.BackgroundTransparency = 1
+				label.Font = Enum.Font.SourceSansBold
+				label.TextColor3 = Color3.new(1, 1, 1)
+				label.TextSize = 14
+				label.Text = "Made by Sar_exploit"
+				label.Parent = frame
+
+				local infiniteJumpEnabled = false
+
+				button.MouseButton1Click:Connect(function()
+					infiniteJumpEnabled = not infiniteJumpEnabled
+					button.Text = infiniteJumpEnabled and "Disable InfJump" or "Enable InfJump"
+				end)
+
+				UserInputService.JumpRequest:Connect(function()
+					if infiniteJumpEnabled then
+						local Character = LocalPlayer.Character
+						if not Character then return end
+						local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+						if not Humanoid then return end
+						Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+					end
+				end)
+
+				Interface:sendConsoleMessage("Inf Jump loaded!")
+			end,
+		}
+
+		Tab:CreateButton{
+			Title = "Destroy Script",
+			Callback = function()
+				-- Stop any active replaying/recording
+				if Tas.core:isReplaying() then Tas.core:stopReplaying() end
+				if Tas.core:isRecording() then Tas.core:stopRecording() end
+
+				-- Re-enable controls and restore gravity
+				pcall(function() Tas.inputController:enableControls() end)
+				pcall(function() Tas.animationController:setDisabled(false) end)
+				workspace.Gravity = DefaultGravity
+
+				-- Restore humanoid stats
+				pcall(function()
+					local Character = LocalPlayer.Character
+					if Character then
+						local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+						if Humanoid then
+							Humanoid.JumpPower = Tas.animationController:getOriginalJumpPower() or 50
+							Humanoid.WalkSpeed = Tas.animationController:getOriginalWalkSpeed() or 16
+						end
+						for _, Part in Character:GetChildren() do
+							if Part:IsA("BasePart") then Part.CanCollide = true end
+						end
+					end
+				end)
+
+				-- Destroy the cursor GUI
+				pcall(function() Tas.inputController._cursorHolder:Destroy() end)
+
+				-- Restore mouse icon
+				pcall(function() UserInputService.MouseIconEnabled = true end)
+
+				-- Unhook practice UI if hooked
+				pcall(function() ObbyRoyale.tasController:unHookPracticeUI() end)
+
+				-- Destroy any inf jump GUI
+				pcall(function()
+					local InfGui = LocalPlayer.PlayerGui:FindFirstChild("DraggableGUI")
+					if InfGui then InfGui:Destroy() end
+				end)
+
+				-- Destroy the main window
+				pcall(function() Library:Destroy() end)
+
+				-- Clear the executed flag so the script can be re-run fresh if needed
+				getgenv().hasExecuted = nil
+				getgenv().onExecuted = nil
 			end,
 		}
 
